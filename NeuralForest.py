@@ -324,6 +324,125 @@ class ForestEcosystem(nn.Module):
         for t in self.trees:
             t.step_age()
 
+    def save_checkpoint(self, path):
+        """
+        Save complete forest state to checkpoint file.
+        
+        Args:
+            path: Path to save checkpoint (e.g., 'checkpoints/forest_step_100.pt')
+        """
+        import os
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        # Collect tree states
+        tree_states = []
+        for t in self.trees:
+            tree_state = {
+                'state_dict': t.state_dict(),
+                'id': t.id,
+                'age': t.age,
+                'bark': t.bark,
+                'fitness': t.fitness,
+            }
+            tree_states.append(tree_state)
+        
+        # Collect mulch data
+        mulch_data = [(x, y, p) for x, y, p in self.mulch.data]
+        
+        # Collect anchor data
+        anchor_data = [(x, y) for x, y in self.anchors.data]
+        
+        # Collect graph edges
+        graph_edges = list(self.graph.edges(data=True))
+        
+        checkpoint = {
+            'input_dim': self.input_dim,
+            'hidden_dim': self.hidden_dim,
+            'max_trees': self.max_trees,
+            'tree_counter': self.tree_counter,
+            'tree_states': tree_states,
+            'router_state_dict': self.router.state_dict(),
+            'mulch_data': mulch_data,
+            'mulch_capacity': self.mulch.capacity,
+            'mulch_alpha': self.mulch.alpha,
+            'anchor_data': anchor_data,
+            'anchor_capacity': self.anchors.capacity,
+            'graph_edges': graph_edges,
+        }
+        
+        torch.save(checkpoint, path)
+        print(f"✅ Checkpoint saved to {path}")
+    
+    @classmethod
+    def load_checkpoint(cls, path, device=None):
+        """
+        Load forest state from checkpoint file.
+        
+        Args:
+            path: Path to checkpoint file
+            device: Device to load model to (default: DEVICE global)
+            
+        Returns:
+            Loaded ForestEcosystem instance
+        """
+        if device is None:
+            device = DEVICE
+        
+        checkpoint = torch.load(path, map_location=device)
+        
+        # Create new forest with saved parameters
+        forest = cls(
+            input_dim=checkpoint['input_dim'],
+            hidden_dim=checkpoint['hidden_dim'],
+            max_trees=checkpoint['max_trees']
+        ).to(device)
+        
+        # Clear the initial tree that was auto-planted
+        forest.trees = nn.ModuleList()
+        forest.graph.clear()
+        
+        # Restore tree counter
+        forest.tree_counter = checkpoint['tree_counter']
+        
+        # Restore trees
+        for tree_state in checkpoint['tree_states']:
+            t = TreeExpert(
+                forest.input_dim,
+                forest.hidden_dim,
+                tree_state['id']
+            ).to(device)
+            t.load_state_dict(tree_state['state_dict'])
+            t.age = tree_state['age']
+            t.bark = tree_state['bark']
+            t.fitness = tree_state['fitness']
+            forest.trees.append(t)
+            forest.graph.add_node(t.id)
+        
+        # Restore router
+        forest.router.load_state_dict(checkpoint['router_state_dict'])
+        
+        # Restore mulch
+        forest.mulch = PrioritizedMulch(
+            capacity=checkpoint['mulch_capacity'],
+            alpha=checkpoint['mulch_alpha']
+        )
+        for x, y, p in checkpoint['mulch_data']:
+            forest.mulch.add(x.to(device), y.to(device), p)
+        
+        # Restore anchors
+        forest.anchors = AnchorCoreset(capacity=checkpoint['anchor_capacity'])
+        for x, y in checkpoint['anchor_data']:
+            forest.anchors.data.append((x.to(device), y.to(device)))
+        
+        # Restore graph edges
+        for u, v, data in checkpoint['graph_edges']:
+            forest.graph.add_edge(u, v, **data)
+        
+        print(f"✅ Checkpoint loaded from {path}")
+        print(f"   Trees: {forest.num_trees()}, Memory: {len(forest.mulch)}, Anchors: {len(forest.anchors)}")
+        
+        return forest
+
 
 class ForestTeacher(nn.Module):
     """
@@ -353,7 +472,7 @@ class ForestTeacher(nn.Module):
 
     def forward(self, x, top_k=3):
         T = len(self.trees)
-        scores = self.router(x)[:, :T]
+        scores = self.router(x, num_trees=T)
         weights = topk_softmax(scores, k=min(top_k, T))
         outs = [t(x) for t in self.trees]  # [B,1]
         out_stack = torch.stack(outs, dim=1)  # [B,T,1]
