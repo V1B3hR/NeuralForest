@@ -437,7 +437,7 @@ class TreeArchitectureSearch:
                 f"  Gen {gen+1:02d}/{self.config.generations} | best_fitness={best_fit:.6f} | time={dt:.1f}s"
             )
             print(
-                f"    best_arch={best_arch.to_dict() if hasattr(best_arch,'to_dict') else asdict(best_arch)}"
+                f"    best_arch={best_arch.to_dict() if hasattr(best_arch, 'to_dict') else asdict(best_arch)}"
             )
 
             if no_improve >= int(self.config.early_stop_patience):
