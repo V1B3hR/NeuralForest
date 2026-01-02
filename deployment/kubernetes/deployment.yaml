@@ -1,0 +1,100 @@
+# Kubernetes Deployment for NeuralForest
+# Production-grade deployment configuration
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neuralforest
+  labels:
+    app: neuralforest
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: neuralforest
+  template:
+    metadata:
+      labels:
+        app: neuralforest
+        version: v1
+    spec:
+      containers:
+      - name: neuralforest
+        image: neuralforest:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: api
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: CHECKPOINT_PATH
+          value: "/data/checkpoints/forest.pt"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: checkpoint-storage
+          mountPath: /data/checkpoints
+          readOnly: true
+        - name: log-storage
+          mountPath: /app/logs
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "from api import NeuralForestAPI; print('alive')"
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "from api import NeuralForestAPI; print('ready')"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: checkpoint-storage
+        persistentVolumeClaim:
+          claimName: neuralforest-checkpoint-pvc
+      - name: log-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neuralforest-service
+  labels:
+    app: neuralforest
+spec:
+  type: ClusterIP
+  selector:
+    app: neuralforest
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: api
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: neuralforest-checkpoint-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard

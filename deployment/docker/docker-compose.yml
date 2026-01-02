@@ -1,0 +1,41 @@
+# Docker Compose for NeuralForest
+# Local development and testing environment
+
+version: '3.8'
+
+services:
+  neuralforest:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    image: neuralforest:latest
+    container_name: neuralforest
+    volumes:
+      - ../../checkpoints:/app/checkpoints
+      - ../../data:/app/data
+      - ../../logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NEURALFOREST_LOG_LEVEL=INFO
+    command: python phase1_demo.py
+    restart: unless-stopped
+    
+  neuralforest-api:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    image: neuralforest:latest
+    container_name: neuralforest-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../checkpoints:/app/checkpoints:ro
+      - ../../logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CHECKPOINT_PATH=/app/checkpoints/forest.pt
+    # Uncomment when API server is implemented
+    # command: python -m api.server
+    restart: unless-stopped
+    depends_on:
+      - neuralforest
