@@ -17,31 +17,15 @@ Develop NeuralForest into a dynamic ecosystem of neural-tree networks that compe
 
 ---
 
-## Phase 2: The Ecosystem — Forest Simulation ✅ COMPLETED
+## Phase 2: The Ecosystem — Forest Simulation
 
 **Goal:** Create a virtual ecosystem where trees (networks) compete for data and learning opportunities, laying the groundwork for long-term evolution.
 
-**Status:** Fully implemented and tested. See `PHASE2_ECOSYSTEM_RESULTS.md` for detailed results.
+- **ForestEcosystem**: Class managing the population of trees (TreeExpert), data sampling (anchors, mulch)
+- **Competition Rules**: Rivalry for "nutrients" (data batches), pruning of the weakest trees, planting the strongest architectures
+- **Robustness Tests**: Introducing random disruptions (“drought”, “flood” in data) and observing which architectures survive
+- **Statistics Logging**: Ongoing: fitness, generations count, architecture/size distribution, selection rate
 
-**Implementation:**
-- ✅ **ForestEcosystem**: Enhanced with competition mechanics via `EcosystemSimulator`
-- ✅ **Competition Rules**: Fitness-based resource allocation through `CompetitionSystem`
-- ✅ **Robustness Tests**: Drought and flood scenarios via `RobustnessTester`
-- ✅ **Statistics Logging**: Comprehensive tracking with `EcosystemStats` (18+ metrics per generation)
-
-**Files:**
-- `ecosystem_simulation.py`: Core ecosystem framework (520 lines)
-- `phase2_ecosystem_demo.py`: 7 comprehensive demonstrations (390 lines)
-- `tests/test_ecosystem.py`: 19 tests, 100% pass rate (485 lines)
-- `PHASE2_ECOSYSTEM_RESULTS.md`: Detailed results and analysis
-
-**Key Features:**
-- Competition for "nutrients" (data batches) based on tree fitness
-- Environmental disruptions: drought (data scarcity) and flood (noise injection)
-- Pruning of weak trees below fitness threshold
-- Dynamic tree planting with capacity management
-- Full statistics history with 18+ metrics per generation
-- Configurable fairness in resource allocation
 ---
 
 ## Phase 3: Evolution and Generational Progress
