@@ -41,6 +41,7 @@ import torch.nn.functional as F
 # Repro / device helpers
 # ----------------------------
 
+
 def _set_seed(seed: int) -> None:
     random.seed(seed)
     torch.manual_seed(seed)
@@ -118,6 +119,7 @@ class TreeExpert(nn.Module):
     Fallback configurable TreeExpert (used only if NeuralForest.TreeExpert import fails).
     Matches the v2.1 behavior: per-tree arch stored, residual uses learnable skip_proj.
     """
+
     def __init__(self, input_dim: int, tree_id: int, arch: TreeArch):
         super().__init__()
         self.id = tree_id
@@ -216,7 +218,13 @@ class TreeArchitectureSearch:
     - add_best_arch_to_pool(steward): pushes best arch into steward.arch_pool if present
     """
 
-    def __init__(self, forest, *, search_space: Optional[Dict[str, List[Any]]] = None, config: Optional[NASConfig] = None):
+    def __init__(
+        self,
+        forest,
+        *,
+        search_space: Optional[Dict[str, List[Any]]] = None,
+        config: Optional[NASConfig] = None,
+    ):
         self.forest = forest
         self.config = config or NASConfig()
 
@@ -298,7 +306,9 @@ class TreeArchitectureSearch:
         if not hasattr(self.forest, "mulch") or len(self.forest.mulch) == 0:
             raise RuntimeError("No data: forest.anchors empty and forest.mulch empty.")
 
-        bx, by = self.forest.mulch.sample(batch_size=batch_size, mix_hard=self.config.mulch_mix_hard)
+        bx, by = self.forest.mulch.sample(
+            batch_size=batch_size, mix_hard=self.config.mulch_mix_hard
+        )
         if bx is None or by is None:
             raise RuntimeError("Not enough mulch data to sample a batch.")
         bx = _ensure_2d(bx.to(self.device))
@@ -322,10 +332,14 @@ class TreeArchitectureSearch:
         # v2.1 forest has input_dim attribute
         input_dim = int(getattr(self.forest, "input_dim", 1))
 
-        model = Tree(input_dim, tree_id=-1, arch=arch).to(self.device)  # expects (input_dim, tree_id, arch)
+        model = Tree(input_dim, tree_id=-1, arch=arch).to(
+            self.device
+        )  # expects (input_dim, tree_id, arch)
         model.train()
 
-        opt = torch.optim.AdamW(model.parameters(), lr=self.config.lr, weight_decay=self.config.weight_decay)
+        opt = torch.optim.AdamW(
+            model.parameters(), lr=self.config.lr, weight_decay=self.config.weight_decay
+        )
 
         # Train
         for _ in range(int(self.config.train_steps)):
@@ -385,7 +399,10 @@ class TreeArchitectureSearch:
         self._build_fixed_validation()
 
         # init
-        self.population = [(self.random_architecture(), float("-inf")) for _ in range(int(self.config.population_size))]
+        self.population = [
+            (self.random_architecture(), float("-inf"))
+            for _ in range(int(self.config.population_size))
+        ]
 
         best_seen = float("-inf")
         no_improve = 0
@@ -405,7 +422,9 @@ class TreeArchitectureSearch:
             best_arch, best_fit = scored[0]
             self.hall_of_fame.append((best_arch, best_fit))
             self.hall_of_fame.sort(key=lambda x: x[1], reverse=True)
-            self.hall_of_fame = self.hall_of_fame[: max(8, int(self.config.population_size * 0.5))]
+            self.hall_of_fame = self.hall_of_fame[
+                : max(8, int(self.config.population_size * 0.5))
+            ]
 
             if best_fit > best_seen + 1e-6:
                 best_seen = best_fit
@@ -414,8 +433,12 @@ class TreeArchitectureSearch:
                 no_improve += 1
 
             dt = time.time() - t0
-            print(f"  Gen {gen+1:02d}/{self.config.generations} | best_fitness={best_fit:.6f} | time={dt:.1f}s")
-            print(f"    best_arch={best_arch.to_dict() if hasattr(best_arch,'to_dict') else asdict(best_arch)}")
+            print(
+                f"  Gen {gen+1:02d}/{self.config.generations} | best_fitness={best_fit:.6f} | time={dt:.1f}s"
+            )
+            print(
+                f"    best_arch={best_arch.to_dict() if hasattr(best_arch,'to_dict') else asdict(best_arch)}"
+            )
 
             if no_improve >= int(self.config.early_stop_patience):
                 print(f"⏹️ Early stop: no improvement for {no_improve} generations.")
@@ -423,7 +446,12 @@ class TreeArchitectureSearch:
                 break
 
             # next gen (elitism + tournament + crossover + mutate)
-            elite_n = max(1, int(int(self.config.population_size) * float(self.config.elite_fraction)))
+            elite_n = max(
+                1,
+                int(
+                    int(self.config.population_size) * float(self.config.elite_fraction)
+                ),
+            )
             elites = scored[:elite_n]
 
             children: List[Tuple[Any, float]] = []
@@ -436,7 +464,9 @@ class TreeArchitectureSearch:
                 else:
                     child = p1
 
-                child = self.mutate(child, mutation_rate=float(self.config.mutation_rate))
+                child = self.mutate(
+                    child, mutation_rate=float(self.config.mutation_rate)
+                )
                 children.append((child, float("-inf")))
 
             self.population = elites + children
@@ -444,7 +474,9 @@ class TreeArchitectureSearch:
 
         best = max(self.hall_of_fame, key=lambda x: x[1])
         best_arch, best_fit = best[0], best[1]
-        best_dict = best_arch.to_dict() if hasattr(best_arch, "to_dict") else asdict(best_arch)
+        best_dict = (
+            best_arch.to_dict() if hasattr(best_arch, "to_dict") else asdict(best_arch)
+        )
 
         print("✅ NAS complete.")
         print(f"   Best fitness: {best_fit:.6f}")
@@ -470,7 +502,12 @@ class TreeArchitectureSearch:
             "config": asdict(self.config),
             "search_space": self.search_space,
             "hall_of_fame": [
-                {"architecture": (a.to_dict() if hasattr(a, "to_dict") else asdict(a)), "fitness": float(f)}
+                {
+                    "architecture": (
+                        a.to_dict() if hasattr(a, "to_dict") else asdict(a)
+                    ),
+                    "fitness": float(f),
+                }
                 for a, f in self.hall_of_fame
             ],
             "best_architecture": best_arch,

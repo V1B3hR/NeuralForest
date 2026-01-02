@@ -10,6 +10,6 @@ from .architecture_search import TreeArchitectureSearch
 from .self_improvement import SelfImprovementLoop
 
 __all__ = [
-    'TreeArchitectureSearch',
-    'SelfImprovementLoop',
+    "TreeArchitectureSearch",
+    "SelfImprovementLoop",
 ]

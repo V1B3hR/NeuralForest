@@ -17,7 +17,7 @@ from .base import (
     RegressionHead,
     GenerationHead,
     TaskRegistry,
-    TaskConfig
+    TaskConfig,
 )
 
 # Import modality-specific tasks
@@ -29,18 +29,18 @@ from . import cross_modal
 
 __all__ = [
     # Base classes
-    'TaskHead',
-    'ClassificationHead',
-    'DetectionHead',
-    'SegmentationHead',
-    'RegressionHead',
-    'GenerationHead',
-    'TaskRegistry',
-    'TaskConfig',
+    "TaskHead",
+    "ClassificationHead",
+    "DetectionHead",
+    "SegmentationHead",
+    "RegressionHead",
+    "GenerationHead",
+    "TaskRegistry",
+    "TaskConfig",
     # Modality modules
-    'vision',
-    'audio',
-    'text',
-    'video',
-    'cross_modal'
+    "vision",
+    "audio",
+    "text",
+    "video",
+    "cross_modal",
 ]

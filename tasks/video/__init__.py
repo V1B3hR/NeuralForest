@@ -3,4 +3,4 @@
 from .classification import VideoClassification
 from .action_recognition import ActionRecognition
 
-__all__ = ['VideoClassification', 'ActionRecognition']
+__all__ = ["VideoClassification", "ActionRecognition"]

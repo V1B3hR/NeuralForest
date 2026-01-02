@@ -9,9 +9,9 @@ from .load_balancer import CanopyBalancer
 from .attention_aggregator import CrossGroveAttention
 
 __all__ = [
-    'ForestCanopy',
-    'GroveRouter',
-    'ModalityDetector',
-    'CanopyBalancer',
-    'CrossGroveAttention',
+    "ForestCanopy",
+    "GroveRouter",
+    "ModalityDetector",
+    "CanopyBalancer",
+    "CrossGroveAttention",
 ]
