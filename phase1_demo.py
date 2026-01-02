@@ -12,8 +12,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import soil processors
 from soil import ImageSoil, AudioSoil
-from soil.image_processor import PatchImageSoil
-from soil.audio_processor import SpectrogramAudioSoil
 from soil.text_processor import SimpleTextSoil
 from soil.video_processor import Frame2DVideoSoil
 
