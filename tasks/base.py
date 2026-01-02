@@ -236,9 +236,14 @@ class TaskConfig:
         
     def create_head(self) -> TaskHead:
         """Create task head from configuration."""
-        return TaskRegistry.create_head(
-            self.head_type,
-            self.input_dim,
+        # Get the task class
+        task_class = TaskRegistry.get(self.head_type)
+        if task_class is None:
+            raise ValueError(f"Unknown head type: {self.head_type}")
+        
+        # Create instance with proper parameters
+        return task_class(
+            input_dim=self.input_dim,
             task_name=self.task_name,
             **self.output_params
         )
