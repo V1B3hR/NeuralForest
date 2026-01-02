@@ -3,7 +3,7 @@ Seasons module for NeuralForest - Training regime management.
 
 This module implements seasonal training cycles inspired by natural forest seasons:
 - Spring: Growth and exploration
-- Summer: Maximum productivity 
+- Summer: Maximum productivity
 - Autumn: Pruning and fitness evaluation
 - Winter: Consolidation and knowledge distillation
 """
@@ -15,9 +15,9 @@ from .autumn_pruning import AutumnPruning
 from .winter_consolidation import WinterConsolidation
 
 __all__ = [
-    'SeasonalCycle',
-    'SpringGrowth',
-    'SummerProductivity',
-    'AutumnPruning',
-    'WinterConsolidation'
+    "SeasonalCycle",
+    "SpringGrowth",
+    "SummerProductivity",
+    "AutumnPruning",
+    "WinterConsolidation",
 ]

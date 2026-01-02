@@ -8,14 +8,14 @@
 
 import math
 import random
-from collections import deque, defaultdict
+from collections import deque
 from dataclasses import dataclass, asdict
+from typing import Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -29,6 +29,7 @@ def set_seed(seed=42):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
 
 set_seed(7)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,6 +47,7 @@ class PrioritizedMulch:
     Stores experiences with priorities and supports weighted sampling.
     Item: (x, y, priority)
     """
+
     def __init__(self, capacity=8000, alpha=0.7, eps=1e-3):
         self.capacity = capacity
         self.alpha = alpha
@@ -69,7 +71,9 @@ class PrioritizedMulch:
         xs, ys = [], []
 
         if hard_n > 0:
-            priorities = torch.tensor([item[2] for item in self.data], dtype=torch.float32)
+            priorities = torch.tensor(
+                [item[2] for item in self.data], dtype=torch.float32
+            )
             probs = priorities.pow(self.alpha)
             probs = probs / probs.sum()
             idx = torch.multinomial(probs, num_samples=hard_n, replacement=(hard_n > n))
@@ -93,6 +97,7 @@ class AnchorCoreset:
     """
     Keeps a small representative set of anchors (x,y).
     """
+
     def __init__(self, capacity=256):
         self.capacity = capacity
         self.data = []  # list of (x, y)
@@ -136,9 +141,7 @@ class GatingRouter(nn.Module):
         super().__init__()
         self.max_trees = max_trees
         self.net = nn.Sequential(
-            nn.Linear(input_dim, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, max_trees)
+            nn.Linear(input_dim, hidden), nn.Tanh(), nn.Linear(hidden, max_trees)
         )
 
     def forward(self, x, num_trees):
@@ -164,9 +167,9 @@ class TreeArch:
     # "depth" counts hidden layers (>=1)
     num_layers: int = 1
     hidden_dim: int = 32
-    activation: str = "tanh"          # relu|gelu|tanh|swish
+    activation: str = "tanh"  # relu|gelu|tanh|swish
     dropout: float = 0.0
-    normalization: str = "none"       # none|layer|batch
+    normalization: str = "none"  # none|layer|batch
     residual: bool = False
 
     def to_dict(self):
@@ -203,6 +206,7 @@ class TreeExpert(nn.Module):
     - id, age, bark, fitness
     - step_age(), update_fitness()
     """
+
     def __init__(self, input_dim: int, tree_id: int, arch: TreeArch):
         super().__init__()
         self.id = tree_id
@@ -273,7 +277,14 @@ class ForestEcosystem(nn.Module):
         self.tree_counter = 0
 
         # Optional per-forest distribution / defaults for new trees
-        self.default_arch = TreeArch(num_layers=1, hidden_dim=hidden_dim, activation="tanh", dropout=0.0, normalization="none", residual=False)
+        self.default_arch = TreeArch(
+            num_layers=1,
+            hidden_dim=hidden_dim,
+            activation="tanh",
+            dropout=0.0,
+            normalization="none",
+            residual=False,
+        )
 
         self._plant_tree()  # start with one tree
 
@@ -316,7 +327,9 @@ class ForestEcosystem(nn.Module):
 
         keep = [t for t in self.trees if t.id not in set(ids_to_remove)]
         if len(keep) < min_keep:
-            sorted_by_fit = sorted(list(self.trees), key=lambda t: t.fitness, reverse=True)
+            sorted_by_fit = sorted(
+                list(self.trees), key=lambda t: t.fitness, reverse=True
+            )
             keep = sorted_by_fit[:min_keep]
 
         removed_ids = {t.id for t in self.trees} - {t.id for t in keep}
@@ -357,18 +370,21 @@ class ForestEcosystem(nn.Module):
     # --------- checkpoints (now store per-tree arch) ---------
     def save_checkpoint(self, path):
         import os
+
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
         tree_states = []
         for t in self.trees:
-            tree_states.append({
-                "state_dict": t.state_dict(),
-                "id": t.id,
-                "age": t.age,
-                "bark": t.bark,
-                "fitness": t.fitness,
-                "arch": t.arch.to_dict(),     # IMPORTANT
-            })
+            tree_states.append(
+                {
+                    "state_dict": t.state_dict(),
+                    "id": t.id,
+                    "age": t.age,
+                    "bark": t.bark,
+                    "fitness": t.fitness,
+                    "arch": t.arch.to_dict(),  # IMPORTANT
+                }
+            )
 
         mulch_data = [(x, y, p) for x, y, p in self.mulch.data]
         anchor_data = [(x, y) for x, y in self.anchors.data]
@@ -409,7 +425,19 @@ class ForestEcosystem(nn.Module):
         forest.trees = nn.ModuleList()
         forest.graph.clear()
         forest.tree_counter = checkpoint["tree_counter"]
-        forest.default_arch = TreeArch(**checkpoint.get("default_arch", {"num_layers": 1, "hidden_dim": forest.hidden_dim, "activation": "tanh", "dropout": 0.0, "normalization": "none", "residual": False}))
+        forest.default_arch = TreeArch(
+            **checkpoint.get(
+                "default_arch",
+                {
+                    "num_layers": 1,
+                    "hidden_dim": forest.hidden_dim,
+                    "activation": "tanh",
+                    "dropout": 0.0,
+                    "normalization": "none",
+                    "residual": False,
+                },
+            )
+        )
 
         for tree_state in checkpoint["tree_states"]:
             arch_dict = tree_state.get("arch", forest.default_arch.to_dict())
@@ -426,7 +454,9 @@ class ForestEcosystem(nn.Module):
 
         forest.router.load_state_dict(checkpoint["router_state_dict"])
 
-        forest.mulch = PrioritizedMulch(capacity=checkpoint["mulch_capacity"], alpha=checkpoint["mulch_alpha"])
+        forest.mulch = PrioritizedMulch(
+            capacity=checkpoint["mulch_capacity"], alpha=checkpoint["mulch_alpha"]
+        )
         for x, y, p in checkpoint["mulch_data"]:
             forest.mulch.add(x.to(device), y.to(device), p)
 
@@ -438,7 +468,9 @@ class ForestEcosystem(nn.Module):
             forest.graph.add_edge(u, v, **data)
 
         print(f"✅ Checkpoint loaded from {path}")
-        print(f"   Trees: {forest.num_trees()}, Memory: {len(forest.mulch)}, Anchors: {len(forest.anchors)}")
+        print(
+            f"   Trees: {forest.num_trees()}, Memory: {len(forest.mulch)}, Anchors: {len(forest.anchors)}"
+        )
         return forest
 
 
@@ -446,18 +478,25 @@ class ForestTeacher(nn.Module):
     """
     Snapshot teacher with correct per-tree architectures.
     """
+
     def __init__(self, forest: ForestEcosystem):
         super().__init__()
         self.input_dim = forest.input_dim
         self.max_trees = forest.max_trees
 
-        self.router = GatingRouter(self.input_dim, max_trees=self.max_trees, hidden=32).to(DEVICE)
-        self.router.load_state_dict({k: v.detach().clone() for k, v in forest.router.state_dict().items()})
+        self.router = GatingRouter(
+            self.input_dim, max_trees=self.max_trees, hidden=32
+        ).to(DEVICE)
+        self.router.load_state_dict(
+            {k: v.detach().clone() for k, v in forest.router.state_dict().items()}
+        )
 
         self.trees = nn.ModuleList()
         for t in forest.trees:
             nt = TreeExpert(self.input_dim, t.id, t.arch).to(DEVICE)
-            nt.load_state_dict({k: v.detach().clone() for k, v in t.state_dict().items()})
+            nt.load_state_dict(
+                {k: v.detach().clone() for k, v in t.state_dict().items()}
+            )
             nt.eval()
             self.trees.append(nt)
 
@@ -486,10 +525,38 @@ class Steward:
 
         # Simple per-tree architecture proposal distribution (optional)
         self.arch_pool = [
-            TreeArch(num_layers=1, hidden_dim=forest.hidden_dim, activation="tanh", dropout=0.0, normalization="none", residual=False),
-            TreeArch(num_layers=2, hidden_dim=forest.hidden_dim, activation="tanh", dropout=0.1, normalization="layer", residual=False),
-            TreeArch(num_layers=3, hidden_dim=64, activation="gelu", dropout=0.1, normalization="layer", residual=True),
-            TreeArch(num_layers=4, hidden_dim=128, activation="swish", dropout=0.2, normalization="layer", residual=True),
+            TreeArch(
+                num_layers=1,
+                hidden_dim=forest.hidden_dim,
+                activation="tanh",
+                dropout=0.0,
+                normalization="none",
+                residual=False,
+            ),
+            TreeArch(
+                num_layers=2,
+                hidden_dim=forest.hidden_dim,
+                activation="tanh",
+                dropout=0.1,
+                normalization="layer",
+                residual=False,
+            ),
+            TreeArch(
+                num_layers=3,
+                hidden_dim=64,
+                activation="gelu",
+                dropout=0.1,
+                normalization="layer",
+                residual=True,
+            ),
+            TreeArch(
+                num_layers=4,
+                hidden_dim=128,
+                activation="swish",
+                dropout=0.2,
+                normalization="layer",
+                residual=True,
+            ),
         ]
 
     def compute_drift(self, x_batch):
@@ -511,7 +578,9 @@ class Steward:
         drift_avg = sum(self.drift_hist) / max(1, len(self.drift_hist))
 
         # 1) Plant new tree if struggling or drift is high
-        if (loss_avg > 0.06 or drift_avg > 1.2) and self.forest.num_trees() < self.forest.max_trees:
+        if (
+            loss_avg > 0.06 or drift_avg > 1.2
+        ) and self.forest.num_trees() < self.forest.max_trees:
             if random.random() < 0.25:
                 self.forest._plant_tree(arch=self.propose_arch())
 
@@ -570,7 +639,9 @@ def train_step(
     # replay
     loss_replay = torch.tensor(0.0, device=DEVICE)
     if replay_ratio > 0:
-        rx, ry = forest.mulch.sample(batch_size=int(len(x_batch) * replay_ratio), mix_hard=0.65)
+        rx, ry = forest.mulch.sample(
+            batch_size=int(len(x_batch) * replay_ratio), mix_hard=0.65
+        )
         if rx is not None:
             rpred, _, _ = forest.forward_forest(rx, top_k=top_k)
             loss_replay = mse(rpred, ry)
@@ -578,7 +649,9 @@ def train_step(
     # anchor
     loss_anchor = torch.tensor(0.0, device=DEVICE)
     if anchor_ratio > 0:
-        ax, ay = forest.anchors.sample(batch_size=max(8, int(len(x_batch) * anchor_ratio)))
+        ax, ay = forest.anchors.sample(
+            batch_size=max(8, int(len(x_batch) * anchor_ratio))
+        )
         if ax is not None:
             apred, _, _ = forest.forward_forest(ax, top_k=top_k)
             loss_anchor = mse(apred, ay)
@@ -590,7 +663,12 @@ def train_step(
             teacher_y = forest.teacher_snapshot(x_batch, top_k=top_k)
         loss_distill = mse(y_pred, teacher_y)
 
-    total_loss = loss_current + 0.7 * loss_replay + 0.6 * loss_anchor + distill_weight * loss_distill
+    total_loss = (
+        loss_current
+        + 0.7 * loss_replay
+        + 0.6 * loss_anchor
+        + distill_weight * loss_distill
+    )
     total_loss.backward()
 
     forest.apply_bark_gradient_mask()
@@ -606,7 +684,9 @@ def train_step(
         "loss_distill": float(loss_distill.item()),
         "loss_total": float(total_loss.item()),
         "trees": forest.num_trees(),
-        "fitness_mean": float(sum(t.fitness for t in forest.trees) / forest.num_trees()),
+        "fitness_mean": float(
+            sum(t.fitness for t in forest.trees) / forest.num_trees()
+        ),
     }
 
 
@@ -643,7 +723,15 @@ def visualize(forest: ForestEcosystem, X, Y_true, step, stats):
             colors.append((0, 1.0 - 0.85 * dark, 0))
             sizes.append(120 + 25 * min(20.0, t.fitness))
             labels[t.id] = f"{t.id}"
-        nx.draw(G, pos, node_color=colors, node_size=sizes, with_labels=True, labels=labels, font_color="white")
+        nx.draw(
+            G,
+            pos,
+            node_color=colors,
+            node_size=sizes,
+            with_labels=True,
+            labels=labels,
+            font_color="white",
+        )
     plt.title(f"Root network | trees={forest.num_trees()} | step={step}")
 
     plt.subplot(1, 2, 2)
@@ -671,11 +759,13 @@ N = 240
 X = torch.linspace(0, 10, N).reshape(-1, 1)
 X_plot = torch.linspace(0, 10, 250).reshape(-1, 1)
 
+
 def target_function(x, t):
     amp = 1.0 + 0.4 * math.sin(t * 0.03)
     phase = 0.5 * math.sin(t * 0.015)
     growth = torch.exp(0.08 * x) * (0.9 + 0.2 * math.sin(t * 0.02))
     return amp * torch.sin(x + phase) / growth
+
 
 forest = ForestEcosystem(input_dim=1, hidden_dim=32, max_trees=24).to(DEVICE)
 steward = Steward(forest)
@@ -690,24 +780,29 @@ batch_size = 48
 
 for step in range(steps):
     start = (step * 3) % (N - batch_size)
-    xb = X[start:start+batch_size]
+    xb = X[start : start + batch_size]
     yb = target_function(xb, step)
 
     prev_param_ids = {id(p) for p in forest.parameters()}
 
     stats = train_step(
-        forest, steward, optimizer,
-        xb, yb,
+        forest,
+        steward,
+        optimizer,
+        xb,
+        yb,
         step_idx=step,
         top_k=3,
         replay_ratio=1.0,
         anchor_ratio=0.5,
-        distill_weight=0.25
+        distill_weight=0.25,
     )
 
     new_param_ids = {id(p) for p in forest.parameters()}
     if new_param_ids != prev_param_ids:
-        optimizer = rebuild_optimizer_preserve_state(optimizer, list(forest.parameters()), lr=0.03)
+        optimizer = rebuild_optimizer_preserve_state(
+            optimizer, list(forest.parameters()), lr=0.03
+        )
 
     if step % 10 == 0:
         Y_plot = target_function(X_plot, step).cpu()

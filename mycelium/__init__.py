@@ -6,6 +6,6 @@ Inspired by real forest mycorrhizal networks.
 from .knowledge_transfer import MyceliumNetwork, KnowledgeTransfer
 
 __all__ = [
-    'MyceliumNetwork',
-    'KnowledgeTransfer',
+    "MyceliumNetwork",
+    "KnowledgeTransfer",
 ]

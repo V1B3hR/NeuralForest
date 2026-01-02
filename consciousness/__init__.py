@@ -9,8 +9,8 @@ from .meta_controller import ForestConsciousness, ConsciousnessMemory
 from .goal_manager import GoalManager, LearningGoal
 
 __all__ = [
-    'ForestConsciousness',
-    'ConsciousnessMemory',
-    'GoalManager',
-    'LearningGoal',
+    "ForestConsciousness",
+    "ConsciousnessMemory",
+    "GoalManager",
+    "LearningGoal",
 ]

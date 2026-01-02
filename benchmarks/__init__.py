@@ -8,6 +8,6 @@ for evaluating NeuralForest in production scenarios.
 from .performance_tests import PerformanceBenchmark, BenchmarkResults
 
 __all__ = [
-    'PerformanceBenchmark',
-    'BenchmarkResults',
+    "PerformanceBenchmark",
+    "BenchmarkResults",
 ]
