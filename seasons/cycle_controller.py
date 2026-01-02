@@ -190,14 +190,15 @@ class SeasonalCycle:
         
         Args:
             random_val: Random value [0, 1] for probability check
-                       If None, uses the growth_probability directly
+                       If None, generates a random value internally
         
         Returns:
             True if a tree should be planted
         """
         config = self.get_training_config()
         if random_val is None:
-            return True
+            import random
+            random_val = random.random()
         return random_val < config["growth_probability"]
     
     def should_prune_tree(self, random_val: float = None) -> bool:
@@ -206,14 +207,15 @@ class SeasonalCycle:
         
         Args:
             random_val: Random value [0, 1] for probability check
-                       If None, uses the prune_probability directly
+                       If None, generates a random value internally
         
         Returns:
             True if pruning should occur
         """
         config = self.get_training_config()
         if random_val is None:
-            return True
+            import random
+            random_val = random.random()
         return random_val < config["prune_probability"]
     
     @staticmethod

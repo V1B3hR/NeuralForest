@@ -141,8 +141,27 @@ class WinterConsolidation:
         """
         # Generate some sample data for transfer
         batch_size = 32
-        input_dim = teacher_tree.trunk[0].in_features if hasattr(teacher_tree.trunk, '__getitem__') else 10
-        sample_x = torch.randn(batch_size, input_dim).to(teacher_tree.trunk[0].weight.device)
+        
+        # Try to get input dimension from tree structure
+        try:
+            if hasattr(teacher_tree, 'trunk') and len(teacher_tree.trunk) > 0:
+                first_layer = teacher_tree.trunk[0]
+                if hasattr(first_layer, 'in_features'):
+                    input_dim = first_layer.in_features
+                    device = first_layer.weight.device
+                else:
+                    # Fallback to common dimension
+                    input_dim = 512
+                    device = next(teacher_tree.parameters()).device
+            else:
+                input_dim = 512
+                device = next(teacher_tree.parameters()).device
+        except Exception:
+            # Safe fallback
+            input_dim = 512
+            device = torch.device('cpu')
+        
+        sample_x = torch.randn(batch_size, input_dim).to(device)
         
         # Get teacher predictions (no gradients)
         with torch.no_grad():
