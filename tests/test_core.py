@@ -24,6 +24,7 @@ neuralforest = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(neuralforest)
 
 TreeExpert = neuralforest.TreeExpert
+TreeArch = neuralforest.TreeArch
 ForestEcosystem = neuralforest.ForestEcosystem
 PrioritizedMulch = neuralforest.PrioritizedMulch
 AnchorCoreset = neuralforest.AnchorCoreset
@@ -32,7 +33,9 @@ DEVICE = neuralforest.DEVICE
 
 def test_tree_expert_creation():
     """Test TreeExpert can be created and used."""
-    tree = TreeExpert(input_dim=1, hidden_dim=32, tree_id=0).to(DEVICE)
+    arch = TreeArch(num_layers=1, hidden_dim=32, activation="tanh", 
+                   dropout=0.0, normalization="none", residual=False)
+    tree = TreeExpert(input_dim=1, tree_id=0, arch=arch).to(DEVICE)
 
     assert tree.id == 0
     assert tree.age == 0
@@ -47,7 +50,9 @@ def test_tree_expert_creation():
 
 def test_tree_expert_aging():
     """Test tree aging and bark formation."""
-    tree = TreeExpert(input_dim=1, hidden_dim=32, tree_id=0).to(DEVICE)
+    arch = TreeArch(num_layers=1, hidden_dim=32, activation="tanh", 
+                   dropout=0.0, normalization="none", residual=False)
+    tree = TreeExpert(input_dim=1, tree_id=0, arch=arch).to(DEVICE)
 
     initial_bark = tree.bark
 
@@ -62,7 +67,9 @@ def test_tree_expert_aging():
 
 def test_tree_fitness_update():
     """Test fitness update mechanism."""
-    tree = TreeExpert(input_dim=1, hidden_dim=32, tree_id=0).to(DEVICE)
+    arch = TreeArch(num_layers=1, hidden_dim=32, activation="tanh", 
+                   dropout=0.0, normalization="none", residual=False)
+    tree = TreeExpert(input_dim=1, tree_id=0, arch=arch).to(DEVICE)
 
     initial_fitness = tree.fitness
 
