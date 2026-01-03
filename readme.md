@@ -3,9 +3,23 @@
 **NeuralForest v2** is an experimental neural network ecosystem combining tree experts, prioritized experience replay, coreset memory, gating/routing, drift detection, and visualization. 
 It is designed for continual learning, with robustness against data drift and dynamic expert growth/pruning.
 
-## ✨ New in Phase 6 & 7
+## ✨ New in Phase 5, 6 & 7
 
-### Phase 6: Self-Evolution & Meta-Learning ✅
+### Phase 5: Visualization and Monitoring ✅
+- **Fitness & Diversity Charts** - Real-time visualization of evolution metrics
+- **Architecture Distribution** - t-SNE/PCA visualization of tree architectures
+- **Performance Heatmaps** - Tree performance across multiple dimensions
+- **Species Tree Plots** - Genealogy and ancestry visualization
+- **Evolution Dashboard** - Comprehensive multi-panel monitoring
+
+### Phase 6: Cooperation & Environmental Adaptation ✅
+- **Tree Cooperation** - Communication channels and message passing
+- **Federated Learning** - Collaborative training with fitness-based weighting
+- **Transfer Learning** - Knowledge distillation across tree species
+- **Environmental Simulation** - Dynamic climate and stressor modeling
+- **Distribution Shifts** - Gradual, sudden, and cyclical data changes
+
+### Phase 6+: Self-Evolution & Meta-Learning ✅
 - **Forest Consciousness** - Meta-controller for autonomous monitoring and improvement
 - **Goal Management** - Learning objectives with progress tracking
 - **Architecture Search** - Evolutionary optimization of tree structures
@@ -53,15 +67,17 @@ Or, in a Jupyter notebook:
 ### Phase Demos
 Explore different capabilities:
 ```bash
-# Phase 1-5: Soil processors, groves, canopy, seasons, multi-modal tasks
+# Phase 1-4: Root system, groves, canopy, seasonal cycles
 python phase1_demo.py  # Root system
 python phase2_demo.py  # Specialized groves
 python phase3_demo.py  # Canopy routing
 python phase4_demo.py  # Seasonal cycles
-python phase5_demo.py  # Multi-modal understanding
 
-# Phase 6: Self-evolution & Meta-learning
-python phase6_demo.py  # Consciousness, goals, architecture search, self-improvement
+# Phase 5: Multi-modal understanding & Visualization
+python phase5_demo.py  # Multi-modal tasks, evolution visualization
+
+# Phase 6: Cooperation, environmental adaptation, self-evolution
+python phase6_demo.py  # Tree cooperation, environmental simulation, consciousness
 
 # Phase 7: Production & Scaling  
 python phase7_demo.py  # API, checkpoints, benchmarks, deployment readiness
@@ -109,6 +125,71 @@ result = consciousness.evolve()
 # Self-improvement
 improvement = SelfImprovementLoop(forest, consciousness)
 cycle_result = improvement.run_cycle()
+```
+
+### Visualization
+```python
+from evolution import ForestVisualizer
+
+# Create visualizer
+visualizer = ForestVisualizer(save_dir='./visualizations')
+
+# Plot fitness trends
+visualizer.plot_fitness_trends(history, show=True)
+
+# Plot architecture distribution
+visualizer.plot_architecture_distribution(trees_data, method='pca')
+
+# Create comprehensive dashboard
+visualizer.create_evolution_dashboard(history, trees_data, genealogy_data)
+
+# Export all plots
+saved_files = visualizer.export_all_plots(history, trees_data, genealogy_data)
+```
+
+### Tree Cooperation
+```python
+from evolution import CooperationSystem
+
+# Create cooperation system
+cooperation = CooperationSystem()
+
+# Enable communication
+for tree_id in range(5):
+    cooperation.enable_tree_communication(tree_id)
+
+# Send messages between trees
+cooperation.communication.send_message(
+    sender_id=0, receiver_id=1,
+    message_type='knowledge',
+    content={'tip': 'Try lower learning rate'}
+)
+
+# Coordinate federated learning
+result = cooperation.coordinate_learning(
+    participating_trees,
+    coordination_type='federated'
+)
+```
+
+### Environmental Simulation
+```python
+from evolution import EnvironmentalSimulator, ClimateType, StressorType
+
+# Create environmental simulator
+env = EnvironmentalSimulator(initial_climate=ClimateType.TEMPERATE)
+
+# Simulate environmental steps
+for _ in range(10):
+    state = env.step()
+    print(f"Resources: {state.resource_availability:.2f}")
+    print(f"Data quality: {state.data_quality:.2f}")
+
+# Trigger environmental stressors
+env.trigger_stressor(StressorType.DROUGHT)
+
+# Apply environmental effects to data
+modified_x, modified_y = env.apply_to_data(data_x, data_y)
 ```
 
 ### Benchmarking
@@ -176,13 +257,20 @@ NeuralForest/
 │   ├── video/              # Video tasks
 │   └── cross_modal/        # Multi-modal tasks
 │
-├── consciousness/           # Meta-controller (Phase 6)
+├── consciousness/           # Meta-controller (Phase 6+)
 │   ├── meta_controller.py  # Forest consciousness
 │   └── goal_manager.py     # Learning objectives
 │
-├── evolution/               # Architecture search (Phase 6)
-│   ├── architecture_search.py
-│   └── self_improvement.py
+├── evolution/               # Evolution & Cooperation (Phases 3-6)
+│   ├── architecture_search.py  # Neural architecture search
+│   ├── self_improvement.py     # Self-improvement loop
+│   ├── visualization.py        # Evolution visualization (Phase 5)
+│   ├── cooperation.py          # Tree cooperation (Phase 6)
+│   ├── environmental_sim.py    # Environmental simulation (Phase 6)
+│   ├── genealogy.py            # Genealogy tracking
+│   ├── monitoring.py           # Real-time monitoring
+│   ├── tree_graveyard.py       # Eliminated tree archive
+│   └── ...                     # Other evolution modules
 │
 ├── api/                     # Production API (Phase 7)
 │   └── forest_api.py       # NeuralForestAPI
