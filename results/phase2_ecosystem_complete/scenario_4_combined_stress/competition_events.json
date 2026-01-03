@@ -1,0 +1,2547 @@
+[
+  {
+    "timestamp": 1767473247.1683123,
+    "generation": 0,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 15,
+        "fitness": 5.0
+      },
+      {
+        "tree_id": 1,
+        "allocation": 15,
+        "fitness": 5.0
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 2,
+        "allocation": 14,
+        "fitness": 5.0
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 5.0
+      },
+      {
+        "tree_id": 4,
+        "allocation": 14,
+        "fitness": 5.0
+      },
+      {
+        "tree_id": 5,
+        "allocation": 14,
+        "fitness": 5.0
+      },
+      {
+        "tree_id": 6,
+        "allocation": 14,
+        "fitness": 5.0
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.1746469,
+    "generation": 1,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.881382141891441
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 4.877540531498282
+      },
+      {
+        "tree_id": 5,
+        "allocation": 13,
+        "fitness": 4.877178706565257
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 5.0
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 4.8728231014256576
+      },
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 4.873625216850478
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 4.86804780057925
+      },
+      {
+        "tree_id": 6,
+        "allocation": 12,
+        "fitness": 4.869650529741514
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.181067,
+    "generation": 2,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.797644109523678
+      },
+      {
+        "tree_id": 5,
+        "allocation": 13,
+        "fitness": 4.761644893958472
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 4.762659320604312
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 4.877521881867578
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 4.7539261729997655
+      },
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 4.750941526575665
+      },
+      {
+        "tree_id": 3,
+        "allocation": 12,
+        "fitness": 4.752479166700876
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 4.74484939729931
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.186426,
+    "generation": 3,
+    "num_competitors": 8,
+    "total_resources": 40,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 6,
+        "fitness": 4.666706040068346
+      },
+      {
+        "tree_id": 5,
+        "allocation": 6,
+        "fitness": 4.672617289018972
+      },
+      {
+        "tree_id": 6,
+        "allocation": 6,
+        "fitness": 4.66747250099285
+      },
+      {
+        "tree_id": 7,
+        "allocation": 6,
+        "fitness": 4.754312689647865
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 4,
+        "fitness": 4.632816205493199
+      },
+      {
+        "tree_id": 2,
+        "allocation": 4,
+        "fitness": 4.638571613633638
+      },
+      {
+        "tree_id": 3,
+        "allocation": 4,
+        "fitness": 4.645302157531113
+      },
+      {
+        "tree_id": 4,
+        "allocation": 4,
+        "fitness": 4.6237726879930845
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.191523,
+    "generation": 4,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.574550301128414
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 4.56314928486577
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 4.5627100217937775
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 4.647086421337733
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 4.503194148244383
+      },
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 4.549149257316311
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 4.516031291623608
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 4.556958607324661
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.1968627,
+    "generation": 5,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.468463720189795
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 4.455636010914377
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 4.4665334298671775
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 4.54232528963237
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 4.409238470225461
+      },
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 4.450190015921967
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 4.429996627153506
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 4.440989023193389
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2022433,
+    "generation": 6,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.398776392452066
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 4.357022684317341
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 4.357907654170818
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 4.439523693796786
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 4.305897818533745
+      },
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 4.3562108086752875
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 4.321630106719142
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 4.339263927319682
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2076728,
+    "generation": 7,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.2880241234202545
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 4.275288998455818
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 4.258219897427934
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 4.336909557240499
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 4.230469390534086
+      },
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 4.255971334834571
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 4.246281281951491
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 4.249746309465187
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2129686,
+    "generation": 8,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.212561755727186
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 4.177457815457898
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 4.156880246031009
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 4.23847111678105
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 4.126801328095217
+      },
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 4.149251617952261
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 4.136497048892529
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 4.149958052586069
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2182653,
+    "generation": 9,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.125997212406396
+      },
+      {
+        "tree_id": 2,
+        "allocation": 13,
+        "fitness": 4.09488734112555
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 4.090869099223276
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 4.13240588964733
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 4.015659887979968
+      },
+      {
+        "tree_id": 3,
+        "allocation": 12,
+        "fitness": 4.073208255297836
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 4.048337367741354
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 4.0503023031556475
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2236223,
+    "generation": 10,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 4.048584460066018
+      },
+      {
+        "tree_id": 2,
+        "allocation": 13,
+        "fitness": 4.004065070620303
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 3.9994024056134307
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 4.041433764504441
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 3.949591987351017
+      },
+      {
+        "tree_id": 3,
+        "allocation": 12,
+        "fitness": 3.9884439030773375
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 3.964367760752048
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 3.952008542953914
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2290683,
+    "generation": 11,
+    "num_competitors": 8,
+    "total_resources": 40,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 6,
+        "fitness": 3.943905721863704
+      },
+      {
+        "tree_id": 2,
+        "allocation": 5,
+        "fitness": 3.9141045544048962
+      },
+      {
+        "tree_id": 3,
+        "allocation": 5,
+        "fitness": 3.915623798962739
+      },
+      {
+        "tree_id": 6,
+        "allocation": 6,
+        "fitness": 3.9208174124783652
+      },
+      {
+        "tree_id": 7,
+        "allocation": 6,
+        "fitness": 3.961115612668268
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 4,
+        "fitness": 3.8649134579869417
+      },
+      {
+        "tree_id": 4,
+        "allocation": 4,
+        "fitness": 3.8793396235607953
+      },
+      {
+        "tree_id": 5,
+        "allocation": 4,
+        "fitness": 3.864344615389595
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2342255,
+    "generation": 12,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 3.84942463561045
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 3.9512996322503735
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 3.82182284953203
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 3.878081568384231
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 12,
+        "fitness": 3.789663930113442
+      },
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 3.8216742393106817
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 3.779936134017365
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 3.797415436993759
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2395625,
+    "generation": 13,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 3.7641473661281335
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 3.783871367962324
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 3.853039078702956
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 3.796221951295789
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 3.731695116683638
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 3.6962461825144284
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 3.7099991492771056
+      },
+      {
+        "tree_id": 6,
+        "allocation": 12,
+        "fitness": 3.724453472633575
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2449353,
+    "generation": 14,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 3.672827769408978
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 3.690846731948323
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 3.7851215227225206
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 3.7068186174891546
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 3.6537477274278682
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 3.6105071206706447
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 3.6117002797821183
+      },
+      {
+        "tree_id": 6,
+        "allocation": 12,
+        "fitness": 3.6427393669716497
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2502377,
+    "generation": 15,
+    "num_competitors": 8,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 3.581752423354973
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 3.6020854720563786
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 3.706656948966958
+      },
+      {
+        "tree_id": 7,
+        "allocation": 13,
+        "fitness": 3.6299389152901016
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 2,
+        "allocation": 12,
+        "fitness": 3.565102727199094
+      },
+      {
+        "tree_id": 4,
+        "allocation": 12,
+        "fitness": 3.5248872850069777
+      },
+      {
+        "tree_id": 5,
+        "allocation": 12,
+        "fitness": 3.521271572017854
+      },
+      {
+        "tree_id": 6,
+        "allocation": 12,
+        "fitness": 3.55365417198
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2559907,
+    "generation": 16,
+    "num_competitors": 6,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 0,
+        "allocation": 17,
+        "fitness": 3.510223344327742
+      },
+      {
+        "tree_id": 1,
+        "allocation": 17,
+        "fitness": 3.508697645939962
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 3.6132160387166956
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 3.5510493642704897
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 2,
+        "allocation": 16,
+        "fitness": 3.5020074066114466
+      },
+      {
+        "tree_id": 6,
+        "allocation": 16,
+        "fitness": 3.487631620966589
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2601228,
+    "generation": 17,
+    "num_competitors": 6,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 1,
+        "allocation": 17,
+        "fitness": 3.4360703265931867
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 3.5246556249230347
+      },
+      {
+        "tree_id": 6,
+        "allocation": 17,
+        "fitness": 3.442347669890607
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 3.481688298636576
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 16,
+        "fitness": 3.4341829602719223
+      },
+      {
+        "tree_id": 2,
+        "allocation": 16,
+        "fitness": 3.431681703829884
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2642365,
+    "generation": 18,
+    "num_competitors": 6,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 2,
+        "allocation": 17,
+        "fitness": 3.3649702484480946
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 3.4460750136569347
+      },
+      {
+        "tree_id": 6,
+        "allocation": 17,
+        "fitness": 3.3717641487617858
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 3.4186871411813966
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 16,
+        "fitness": 3.3552712502145763
+      },
+      {
+        "tree_id": 1,
+        "allocation": 16,
+        "fitness": 3.3572359983020736
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2684398,
+    "generation": 19,
+    "num_competitors": 6,
+    "total_resources": 40,
+    "winners": [
+      {
+        "tree_id": 2,
+        "allocation": 7,
+        "fitness": 3.3076651073988717
+      },
+      {
+        "tree_id": 3,
+        "allocation": 7,
+        "fitness": 3.3667819940867902
+      },
+      {
+        "tree_id": 6,
+        "allocation": 7,
+        "fitness": 3.298478394645105
+      },
+      {
+        "tree_id": 7,
+        "allocation": 7,
+        "fitness": 3.371100995763399
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 6,
+        "fitness": 3.2960010415221155
+      },
+      {
+        "tree_id": 1,
+        "allocation": 6,
+        "fitness": 3.275517330030962
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2725918,
+    "generation": 20,
+    "num_competitors": 6,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 2,
+        "allocation": 17,
+        "fitness": 3.2799096648841695
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 3.3142171865498007
+      },
+      {
+        "tree_id": 7,
+        "allocation": 18,
+        "fitness": 3.3803631075963185
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 16,
+        "fitness": 3.229798957169908
+      },
+      {
+        "tree_id": 1,
+        "allocation": 16,
+        "fitness": 3.2048158945364484
+      },
+      {
+        "tree_id": 6,
+        "allocation": 16,
+        "fitness": 3.223818003068614
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2778378,
+    "generation": 21,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 19,
+        "fitness": 5.0
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 3.177663364943101
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 3.148972221049267
+      },
+      {
+        "tree_id": 2,
+        "allocation": 14,
+        "fitness": 3.210564854597142
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 3.2608100133299978
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 3.165885789509886
+      },
+      {
+        "tree_id": 7,
+        "allocation": 14,
+        "fitness": 3.2958271295338704
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.282985,
+    "generation": 22,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 19,
+        "fitness": 4.874260773747
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 3.1064093996155178
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 3.110878204655479
+      },
+      {
+        "tree_id": 2,
+        "allocation": 14,
+        "fitness": 3.1380562304177193
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 3.20198356156041
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 3.1122446160661696
+      },
+      {
+        "tree_id": 7,
+        "allocation": 14,
+        "fitness": 3.259201931310236
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2878428,
+    "generation": 23,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 19,
+        "fitness": 4.746213093161549
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 3.040318083782533
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 3.0377259118701074
+      },
+      {
+        "tree_id": 2,
+        "allocation": 14,
+        "fitness": 3.0863813130030437
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 3.1301306538300073
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 3.0494616792916225
+      },
+      {
+        "tree_id": 7,
+        "allocation": 14,
+        "fitness": 3.1893787536663254
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.2927237,
+    "generation": 24,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 19,
+        "fitness": 4.658945385672545
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 2.976347778230825
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 2.997351188951734
+      },
+      {
+        "tree_id": 2,
+        "allocation": 14,
+        "fitness": 3.0153712327150157
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 3.0687428912408734
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 2.9798250798340384
+      },
+      {
+        "tree_id": 7,
+        "allocation": 14,
+        "fitness": 3.126836386595517
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.297806,
+    "generation": 25,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 19,
+        "fitness": 4.544755147342548
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 2.9082707009243967
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 2.9311643126591016
+      },
+      {
+        "tree_id": 2,
+        "allocation": 14,
+        "fitness": 2.96127881507308
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 3.011986536184886
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 2.9521340239587643
+      },
+      {
+        "tree_id": 7,
+        "allocation": 14,
+        "fitness": 3.057223782965981
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3027618,
+    "generation": 26,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 15,
+        "fitness": 3.0944279714637872
+      },
+      {
+        "tree_id": 8,
+        "allocation": 19,
+        "fitness": 4.44372222410218
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 2.860501609554693
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 2.8631162615675003
+      },
+      {
+        "tree_id": 2,
+        "allocation": 13,
+        "fitness": 2.923869245972541
+      },
+      {
+        "tree_id": 3,
+        "allocation": 13,
+        "fitness": 2.941517510591755
+      },
+      {
+        "tree_id": 6,
+        "allocation": 14,
+        "fitness": 2.9564204671218977
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3076744,
+    "generation": 27,
+    "num_competitors": 7,
+    "total_resources": 40,
+    "winners": [
+      {
+        "tree_id": 6,
+        "allocation": 6,
+        "fitness": 2.896434334982165
+      },
+      {
+        "tree_id": 7,
+        "allocation": 6,
+        "fitness": 3.035054157645458
+      },
+      {
+        "tree_id": 8,
+        "allocation": 8,
+        "fitness": 4.3655372960211425
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 5,
+        "fitness": 2.822277451239526
+      },
+      {
+        "tree_id": 1,
+        "allocation": 5,
+        "fitness": 2.807250057405211
+      },
+      {
+        "tree_id": 2,
+        "allocation": 5,
+        "fitness": 2.852197603319447
+      },
+      {
+        "tree_id": 3,
+        "allocation": 5,
+        "fitness": 2.8694433207776475
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3124177,
+    "generation": 28,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 15,
+        "fitness": 2.9744366728238285
+      },
+      {
+        "tree_id": 8,
+        "allocation": 19,
+        "fitness": 4.251605717058592
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 2.753194129641619
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 2.7683876817686848
+      },
+      {
+        "tree_id": 2,
+        "allocation": 13,
+        "fitness": 2.7802185404902087
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 2.847911057056241
+      },
+      {
+        "tree_id": 6,
+        "allocation": 13,
+        "fitness": 2.844464006708251
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3173857,
+    "generation": 29,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 15,
+        "fitness": 2.9467715997018016
+      },
+      {
+        "tree_id": 8,
+        "allocation": 18,
+        "fitness": 4.153783795905822
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 2.6843216549246303
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 2.767897193929789
+      },
+      {
+        "tree_id": 2,
+        "allocation": 13,
+        "fitness": 2.728031793292676
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 2.7912271193395783
+      },
+      {
+        "tree_id": 6,
+        "allocation": 14,
+        "fitness": 2.7818802876421014
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3223517,
+    "generation": 30,
+    "num_competitors": 7,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 15,
+        "fitness": 2.896357615272037
+      },
+      {
+        "tree_id": 8,
+        "allocation": 18,
+        "fitness": 4.072019990721418
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 0,
+        "allocation": 13,
+        "fitness": 2.619844935680169
+      },
+      {
+        "tree_id": 1,
+        "allocation": 13,
+        "fitness": 2.7110022787647714
+      },
+      {
+        "tree_id": 2,
+        "allocation": 13,
+        "fitness": 2.664079972618393
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 2.7427746943501954
+      },
+      {
+        "tree_id": 6,
+        "allocation": 14,
+        "fitness": 2.7277989447107966
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3275316,
+    "generation": 31,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.8308441819713246
+      },
+      {
+        "tree_id": 8,
+        "allocation": 25,
+        "fitness": 3.9757827717231704
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.6598833204038073
+      },
+      {
+        "tree_id": 3,
+        "allocation": 18,
+        "fitness": 2.676143556827202
+      },
+      {
+        "tree_id": 6,
+        "allocation": 19,
+        "fitness": 2.7258219813638527
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3311079,
+    "generation": 32,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.776560258022761
+      },
+      {
+        "tree_id": 8,
+        "allocation": 25,
+        "fitness": 3.9077513140714917
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.596148581855902
+      },
+      {
+        "tree_id": 3,
+        "allocation": 18,
+        "fitness": 2.62744532486588
+      },
+      {
+        "tree_id": 6,
+        "allocation": 19,
+        "fitness": 2.6668355171073843
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3346293,
+    "generation": 33,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.7230008216057735
+      },
+      {
+        "tree_id": 8,
+        "allocation": 25,
+        "fitness": 3.816564323901667
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.532823623129409
+      },
+      {
+        "tree_id": 3,
+        "allocation": 18,
+        "fitness": 2.58476421414412
+      },
+      {
+        "tree_id": 6,
+        "allocation": 19,
+        "fitness": 2.6101411326628834
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3381553,
+    "generation": 34,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.677270502402833
+      },
+      {
+        "tree_id": 8,
+        "allocation": 25,
+        "fitness": 3.7303956681001234
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.4949831025194955
+      },
+      {
+        "tree_id": 3,
+        "allocation": 18,
+        "fitness": 2.5377165383894447
+      },
+      {
+        "tree_id": 6,
+        "allocation": 19,
+        "fitness": 2.560477044899066
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3418899,
+    "generation": 35,
+    "num_competitors": 5,
+    "total_resources": 40,
+    "winners": [
+      {
+        "tree_id": 3,
+        "allocation": 8,
+        "fitness": 2.513275175578174
+      },
+      {
+        "tree_id": 7,
+        "allocation": 8,
+        "fitness": 2.643982916749637
+      },
+      {
+        "tree_id": 8,
+        "allocation": 10,
+        "fitness": 3.644420935833944
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 7,
+        "fitness": 2.474258341847478
+      },
+      {
+        "tree_id": 6,
+        "allocation": 7,
+        "fitness": 2.5036268020062575
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3454309,
+    "generation": 36,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.5861136523371515
+      },
+      {
+        "tree_id": 8,
+        "allocation": 25,
+        "fitness": 3.5598774755725633
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.4636962775919407
+      },
+      {
+        "tree_id": 3,
+        "allocation": 19,
+        "fitness": 2.474575118848999
+      },
+      {
+        "tree_id": 6,
+        "allocation": 18,
+        "fitness": 2.4579399832056925
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3489838,
+    "generation": 37,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.534062578698273
+      },
+      {
+        "tree_id": 8,
+        "allocation": 25,
+        "fitness": 3.4886673218050848
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.425913857259749
+      },
+      {
+        "tree_id": 3,
+        "allocation": 19,
+        "fitness": 2.4287864999645
+      },
+      {
+        "tree_id": 6,
+        "allocation": 18,
+        "fitness": 2.4135800694361182
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.352577,
+    "generation": 38,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.480366683094563
+      },
+      {
+        "tree_id": 8,
+        "allocation": 25,
+        "fitness": 3.4144750953938194
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 19,
+        "fitness": 2.3913330739610803
+      },
+      {
+        "tree_id": 3,
+        "allocation": 18,
+        "fitness": 2.3838400320180075
+      },
+      {
+        "tree_id": 6,
+        "allocation": 18,
+        "fitness": 2.3829363610997722
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3563254,
+    "generation": 39,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.434787927740699
+      },
+      {
+        "tree_id": 8,
+        "allocation": 24,
+        "fitness": 3.3407358975769696
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 19,
+        "fitness": 2.358957759242003
+      },
+      {
+        "tree_id": 3,
+        "allocation": 19,
+        "fitness": 2.3564011744461055
+      },
+      {
+        "tree_id": 6,
+        "allocation": 18,
+        "fitness": 2.3287711669106974
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3598993,
+    "generation": 40,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 1,
+        "allocation": 20,
+        "fitness": 2.379329662261385
+      },
+      {
+        "tree_id": 7,
+        "allocation": 20,
+        "fitness": 2.394841182257091
+      },
+      {
+        "tree_id": 8,
+        "allocation": 24,
+        "fitness": 3.2758847311299832
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 3,
+        "allocation": 18,
+        "fitness": 2.31875938807637
+      },
+      {
+        "tree_id": 6,
+        "allocation": 18,
+        "fitness": 2.2854912298550825
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.364462,
+    "generation": 41,
+    "num_competitors": 6,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 18,
+        "fitness": 3.2057379572301405
+      },
+      {
+        "tree_id": 9,
+        "allocation": 25,
+        "fitness": 5.0
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 14,
+        "fitness": 2.3406290262595197
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 2.270468336378176
+      },
+      {
+        "tree_id": 6,
+        "allocation": 14,
+        "fitness": 2.251802621603817
+      },
+      {
+        "tree_id": 7,
+        "allocation": 15,
+        "fitness": 2.3553597870643723
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3690443,
+    "generation": 42,
+    "num_competitors": 6,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 18,
+        "fitness": 3.138845121472912
+      },
+      {
+        "tree_id": 9,
+        "allocation": 25,
+        "fitness": 4.880143446386335
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 15,
+        "fitness": 2.311095546558604
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 2.243967143104354
+      },
+      {
+        "tree_id": 6,
+        "allocation": 14,
+        "fitness": 2.2146942441324406
+      },
+      {
+        "tree_id": 7,
+        "allocation": 14,
+        "fitness": 2.3035549196107175
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3742251,
+    "generation": 43,
+    "num_competitors": 6,
+    "total_resources": 40,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 8,
+        "fitness": 3.074160698351101
+      },
+      {
+        "tree_id": 9,
+        "allocation": 10,
+        "fitness": 4.766689893689695
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 6,
+        "fitness": 2.2581033116781364
+      },
+      {
+        "tree_id": 3,
+        "allocation": 5,
+        "fitness": 2.2265016826181383
+      },
+      {
+        "tree_id": 6,
+        "allocation": 5,
+        "fitness": 2.1697437293195057
+      },
+      {
+        "tree_id": 7,
+        "allocation": 6,
+        "fitness": 2.265526589388382
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3784242,
+    "generation": 44,
+    "num_competitors": 6,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 18,
+        "fitness": 3.011200754067506
+      },
+      {
+        "tree_id": 9,
+        "allocation": 25,
+        "fitness": 4.658491383024214
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 15,
+        "fitness": 2.253965500139579
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 2.191037709148371
+      },
+      {
+        "tree_id": 6,
+        "allocation": 14,
+        "fitness": 2.1607448559950346
+      },
+      {
+        "tree_id": 7,
+        "allocation": 14,
+        "fitness": 2.2488301630631153
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3826015,
+    "generation": 45,
+    "num_competitors": 6,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 18,
+        "fitness": 2.947744667860912
+      },
+      {
+        "tree_id": 9,
+        "allocation": 25,
+        "fitness": 4.551348831864982
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 14,
+        "fitness": 2.200960555694132
+      },
+      {
+        "tree_id": 3,
+        "allocation": 14,
+        "fitness": 2.144441735307319
+      },
+      {
+        "tree_id": 6,
+        "allocation": 14,
+        "fitness": 2.1233440078925576
+      },
+      {
+        "tree_id": 7,
+        "allocation": 15,
+        "fitness": 2.2041113447040503
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3872676,
+    "generation": 46,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.8891430968496157
+      },
+      {
+        "tree_id": 9,
+        "allocation": 28,
+        "fitness": 4.441983927240995
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.207085500499022
+      },
+      {
+        "tree_id": 3,
+        "allocation": 16,
+        "fitness": 2.0983336447588723
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 2.173107526826844
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3908815,
+    "generation": 47,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.8257480523686755
+      },
+      {
+        "tree_id": 9,
+        "allocation": 28,
+        "fitness": 4.336152712218169
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.177443533075212
+      },
+      {
+        "tree_id": 3,
+        "allocation": 16,
+        "fitness": 2.0811450759004964
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 2.1316855000108204
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.39442,
+    "generation": 48,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.794358781094198
+      },
+      {
+        "tree_id": 9,
+        "allocation": 28,
+        "fitness": 4.228851182841488
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.147046483934119
+      },
+      {
+        "tree_id": 3,
+        "allocation": 16,
+        "fitness": 2.039465255236223
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 2.129808604567197
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.3979962,
+    "generation": 49,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.740439623431561
+      },
+      {
+        "tree_id": 9,
+        "allocation": 28,
+        "fitness": 4.127324896061026
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.115241579616857
+      },
+      {
+        "tree_id": 3,
+        "allocation": 16,
+        "fitness": 2.012604101089227
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 2.1065649160620197
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4016254,
+    "generation": 50,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.7090976599696326
+      },
+      {
+        "tree_id": 9,
+        "allocation": 28,
+        "fitness": 4.031200128970186
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.0703140508972604
+      },
+      {
+        "tree_id": 3,
+        "allocation": 16,
+        "fitness": 1.9770144768309617
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 2.067749840164322
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4052596,
+    "generation": 51,
+    "num_competitors": 5,
+    "total_resources": 40,
+    "winners": [
+      {
+        "tree_id": 1,
+        "allocation": 8,
+        "fitness": 2.0631805873581275
+      },
+      {
+        "tree_id": 8,
+        "allocation": 9,
+        "fitness": 2.664263429200626
+      },
+      {
+        "tree_id": 9,
+        "allocation": 11,
+        "fitness": 3.9435313264839658
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 3,
+        "allocation": 6,
+        "fitness": 1.939583163411982
+      },
+      {
+        "tree_id": 7,
+        "allocation": 6,
+        "fitness": 2.035498455247252
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4087982,
+    "generation": 52,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.6013424849513314
+      },
+      {
+        "tree_id": 9,
+        "allocation": 28,
+        "fitness": 3.862952229647044
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 2.0344778114105724
+      },
+      {
+        "tree_id": 3,
+        "allocation": 16,
+        "fitness": 1.8945851151090485
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 1.993374285646872
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4124224,
+    "generation": 53,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.5480660775613337
+      },
+      {
+        "tree_id": 9,
+        "allocation": 28,
+        "fitness": 3.7894091873650613
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 17,
+        "fitness": 1.996421077832301
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 1.88483841381229
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 1.9548990996799003
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4160273,
+    "generation": 54,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.488451918263779
+      },
+      {
+        "tree_id": 9,
+        "allocation": 28,
+        "fitness": 3.7097917607184345
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 17,
+        "fitness": 1.9685446957668546
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 1.8558388451732497
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 1.9433647186420362
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4196455,
+    "generation": 55,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.462535322075914
+      },
+      {
+        "tree_id": 9,
+        "allocation": 27,
+        "fitness": 3.621782606621615
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 1.9398882014598822
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 1.861707446864467
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 1.9290880933358545
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4232156,
+    "generation": 56,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.4379671711241393
+      },
+      {
+        "tree_id": 9,
+        "allocation": 27,
+        "fitness": 3.5372588814866797
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 1.933217736302054
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 1.8313329195542678
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 1.9070095103648068
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4267359,
+    "generation": 57,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.395618901559161
+      },
+      {
+        "tree_id": 9,
+        "allocation": 27,
+        "fitness": 3.4555461017196305
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 18,
+        "fitness": 1.9126894890102086
+      },
+      {
+        "tree_id": 3,
+        "allocation": 17,
+        "fitness": 1.8363795616567085
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 1.8780766332332455
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4302597,
+    "generation": 58,
+    "num_competitors": 5,
+    "total_resources": 100,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 21,
+        "fitness": 2.349232063505944
+      },
+      {
+        "tree_id": 9,
+        "allocation": 27,
+        "fitness": 3.3782687705926704
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 17,
+        "fitness": 1.8762641732324108
+      },
+      {
+        "tree_id": 3,
+        "allocation": 18,
+        "fitness": 1.8779698539350487
+      },
+      {
+        "tree_id": 7,
+        "allocation": 17,
+        "fitness": 1.8512265035811835
+      }
+    ],
+    "fairness_factor": 0.35
+  },
+  {
+    "timestamp": 1767473247.4338727,
+    "generation": 59,
+    "num_competitors": 5,
+    "total_resources": 40,
+    "winners": [
+      {
+        "tree_id": 8,
+        "allocation": 8,
+        "fitness": 2.299388282380547
+      },
+      {
+        "tree_id": 9,
+        "allocation": 11,
+        "fitness": 3.3098850929697314
+      }
+    ],
+    "losers": [
+      {
+        "tree_id": 1,
+        "allocation": 7,
+        "fitness": 1.8419636215945454
+      },
+      {
+        "tree_id": 3,
+        "allocation": 7,
+        "fitness": 1.8614489133518806
+      },
+      {
+        "tree_id": 7,
+        "allocation": 7,
+        "fitness": 1.833588728142724
+      }
+    ],
+    "fairness_factor": 0.35
+  }
+]

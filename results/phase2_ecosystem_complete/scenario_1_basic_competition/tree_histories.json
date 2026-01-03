@@ -1,0 +1,122 @@
+{
+  "0": {
+    "tree_id": 0,
+    "num_measurements": 51,
+    "avg_fitness": 3.113701323682867,
+    "fitness_trend": "declining",
+    "total_resources": 848,
+    "avg_allocation": 16.96,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.0018911319971084
+  },
+  "1": {
+    "tree_id": 1,
+    "num_measurements": 12,
+    "avg_fitness": 4.378161765193293,
+    "fitness_trend": "declining",
+    "total_resources": 157,
+    "avg_allocation": 14.272727272727273,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.25202337178317
+  },
+  "2": {
+    "tree_id": 2,
+    "num_measurements": 32,
+    "avg_fitness": 3.6217474465232895,
+    "fitness_trend": "declining",
+    "total_resources": 516,
+    "avg_allocation": 16.64516129032258,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.0794917152773948
+  },
+  "3": {
+    "tree_id": 3,
+    "num_measurements": 51,
+    "avg_fitness": 3.1377402824362046,
+    "fitness_trend": "declining",
+    "total_resources": 891,
+    "avg_allocation": 17.82,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.034496318101883
+  },
+  "4": {
+    "tree_id": 4,
+    "num_measurements": 22,
+    "avg_fitness": 3.9483103939795727,
+    "fitness_trend": "declining",
+    "total_resources": 326,
+    "avg_allocation": 15.523809523809524,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.2181048435824258
+  },
+  "5": {
+    "tree_id": 5,
+    "num_measurements": 12,
+    "avg_fitness": 4.399382535266478,
+    "fitness_trend": "declining",
+    "total_resources": 156,
+    "avg_allocation": 14.181818181818182,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.174738350239667
+  },
+  "6": {
+    "tree_id": 6,
+    "num_measurements": 40,
+    "avg_fitness": 3.28162221338913,
+    "fitness_trend": "declining",
+    "total_resources": 703,
+    "avg_allocation": 17.575,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.1220670163631439
+  },
+  "7": {
+    "tree_id": 7,
+    "num_measurements": 34,
+    "avg_fitness": 3.423069526519516,
+    "fitness_trend": "declining",
+    "total_resources": 757,
+    "avg_allocation": 22.264705882352942,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.1780216834124397
+  },
+  "8": {
+    "tree_id": 8,
+    "num_measurements": 19,
+    "avg_fitness": 3.983540272642884,
+    "fitness_trend": "declining",
+    "total_resources": 529,
+    "avg_allocation": 27.842105263157894,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 1.0746399744560844
+  },
+  "9": {
+    "tree_id": 9,
+    "num_measurements": 4,
+    "avg_fitness": 4.746901156736803,
+    "fitness_trend": "stable",
+    "total_resources": 117,
+    "avg_allocation": 29.25,
+    "disruptions_survived": 0,
+    "competition_wins": 0,
+    "competition_losses": 0,
+    "avg_training_loss": 0.7855728194117546
+  }
+}

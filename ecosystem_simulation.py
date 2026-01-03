@@ -615,10 +615,10 @@ class EcosystemSimulator:
                     if hasattr(tree, 'bark') and tree.bark > 0:
                         for p in tree.parameters():
                             if p.grad is not None:
-                                p.grad. mul_(1. 0 - tree.bark)
+                                p.grad.mul_(1.0 - tree.bark)
                     
                     # Optimizer step
-                    self.optimizer. step()
+                    self.optimizer.step()
                     
                     # Record loss
                     loss_value = loss.item()
