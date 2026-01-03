@@ -767,46 +767,47 @@ def target_function(x, t):
     return amp * torch.sin(x + phase) / growth
 
 
-forest = ForestEcosystem(input_dim=1, hidden_dim=32, max_trees=24).to(DEVICE)
-steward = Steward(forest)
+if __name__ == "__main__":
+    forest = ForestEcosystem(input_dim=1, hidden_dim=32, max_trees=24).to(DEVICE)
+    steward = Steward(forest)
 
-optimizer = optim.Adam(list(forest.parameters()), lr=0.03)
-forest.snapshot_teacher()
+    optimizer = optim.Adam(list(forest.parameters()), lr=0.03)
+    forest.snapshot_teacher()
 
-plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 6))
 
-steps = 260
-batch_size = 48
+    steps = 260
+    batch_size = 48
 
-for step in range(steps):
-    start = (step * 3) % (N - batch_size)
-    xb = X[start : start + batch_size]
-    yb = target_function(xb, step)
+    for step in range(steps):
+        start = (step * 3) % (N - batch_size)
+        xb = X[start : start + batch_size]
+        yb = target_function(xb, step)
 
-    prev_param_ids = {id(p) for p in forest.parameters()}
+        prev_param_ids = {id(p) for p in forest.parameters()}
 
-    stats = train_step(
-        forest,
-        steward,
-        optimizer,
-        xb,
-        yb,
-        step_idx=step,
-        top_k=3,
-        replay_ratio=1.0,
-        anchor_ratio=0.5,
-        distill_weight=0.25,
-    )
-
-    new_param_ids = {id(p) for p in forest.parameters()}
-    if new_param_ids != prev_param_ids:
-        optimizer = rebuild_optimizer_preserve_state(
-            optimizer, list(forest.parameters()), lr=0.03
+        stats = train_step(
+            forest,
+            steward,
+            optimizer,
+            xb,
+            yb,
+            step_idx=step,
+            top_k=3,
+            replay_ratio=1.0,
+            anchor_ratio=0.5,
+            distill_weight=0.25,
         )
 
-    if step % 10 == 0:
-        Y_plot = target_function(X_plot, step).cpu()
-        visualize(forest, X_plot.cpu(), Y_plot, step, stats)
+        new_param_ids = {id(p) for p in forest.parameters()}
+        if new_param_ids != prev_param_ids:
+            optimizer = rebuild_optimizer_preserve_state(
+                optimizer, list(forest.parameters()), lr=0.03
+            )
 
-plt.show()
-print("Done.")
+        if step % 10 == 0:
+            Y_plot = target_function(X_plot, step).cpu()
+            visualize(forest, X_plot.cpu(), Y_plot, step, stats)
+
+    plt.show()
+    print("Done.")
