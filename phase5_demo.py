@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Phase 5 Demo: Multi-Modal Understanding
+Phase 5 Demo: Multi-Modal Understanding & Visualization
 
 Demonstrates the multi-modal task system with:
 - Vision tasks (classification, detection, segmentation)
@@ -8,10 +8,13 @@ Demonstrates the multi-modal task system with:
 - Text tasks (classification, NER, generation)
 - Video tasks (classification, action recognition)
 - Cross-modal tasks (image-text matching, audio-visual)
+- Comprehensive evolution visualization tools
 """
 
 import torch
+import numpy as np
 from tasks import TaskRegistry, TaskConfig, vision, audio, text, video, cross_modal
+from evolution import ForestVisualizer
 
 
 def demo_task_registry():
@@ -261,6 +264,7 @@ def main():
     demo_video_tasks()
     demo_cross_modal_tasks()
     demo_task_config()
+    demo_visualization_system()
 
     print("=" * 60)
     print("Phase 5 Demo Complete! ✅")
@@ -274,6 +278,139 @@ def main():
     print("- Video: Classification, Action Recognition")
     print("- Cross-modal: Image-Text, Audio-Visual")
     print("- Flexible TaskRegistry for dynamic task management")
+    print("- Comprehensive visualization tools (fitness, diversity, heatmaps, etc.)")
+    print()
+
+
+def demo_visualization_system():
+    """Demonstrate the visualization system."""
+    print("7. Evolution Visualization System")
+    print("-" * 60)
+    
+    # Create visualizer
+    visualizer = ForestVisualizer(save_dir="./visualizations")
+    print("✓ ForestVisualizer initialized")
+    
+    # Create mock evolution history data
+    print("\na) Creating mock evolution data for demonstration...")
+    history = []
+    for gen in range(20):
+        history.append({
+            'generation': gen,
+            'num_trees': 5 + np.random.randint(-1, 3),
+            'avg_fitness': 2.0 + gen * 0.2 + np.random.randn() * 0.3,
+            'max_fitness': 3.0 + gen * 0.25 + np.random.randn() * 0.2,
+            'min_fitness': 1.0 + gen * 0.15 + np.random.randn() * 0.2,
+            'fitness_std': 0.5 + np.random.rand() * 0.3,
+            'architecture_diversity': 0.3 + np.random.rand() * 0.4,
+            'fitness_diversity': 0.4 + np.random.rand() * 0.3,
+            'mutations_count': np.random.randint(1, 5),
+            'crossovers_count': np.random.randint(0, 3),
+            'births_count': np.random.randint(0, 2),
+            'deaths_count': np.random.randint(0, 2),
+        })
+    
+    # Create mock tree data
+    trees_data = []
+    for i in range(6):
+        trees_data.append({
+            'id': i,
+            'fitness': 3.0 + np.random.rand() * 3.0,
+            'age': np.random.randint(1, 15),
+            'bark': 1.0 + np.random.rand() * 0.5,
+            'architecture': {
+                'num_layers': np.random.choice([2, 3, 4, 5]),
+                'hidden_dim': np.random.choice([32, 64, 128, 256]),
+                'dropout': np.random.choice([0.0, 0.1, 0.2, 0.3]),
+                'activation': np.random.choice(['relu', 'gelu', 'tanh']),
+                'use_residual': np.random.choice([True, False]),
+                'normalization': np.random.choice(['layer', 'batch', 'none']),
+            }
+        })
+    
+    # Create mock genealogy data
+    genealogy_data = {
+        0: {'fitness': 3.5, 'generation': 0, 'age': 19, 'parents': []},
+        1: {'fitness': 4.2, 'generation': 5, 'age': 14, 'parents': [0]},
+        2: {'fitness': 5.1, 'generation': 8, 'age': 11, 'parents': [0, 1]},
+        3: {'fitness': 4.8, 'generation': 10, 'age': 9, 'parents': [1]},
+        4: {'fitness': 5.5, 'generation': 15, 'age': 4, 'parents': [2]},
+        5: {'fitness': 6.0, 'generation': 18, 'age': 1, 'parents': [2, 3]},
+    }
+    
+    print("✓ Mock evolution data created")
+    print(f"  - {len(history)} generations")
+    print(f"  - {len(trees_data)} current trees")
+    print(f"  - {len(genealogy_data)} genealogy records")
+    
+    # Test individual plots (without showing)
+    print("\nb) Testing individual visualization components...")
+    
+    try:
+        visualizer.plot_fitness_trends(history, show=False)
+        print("  ✓ Fitness trends plot")
+    except Exception as e:
+        print(f"  ✗ Fitness trends plot failed: {e}")
+    
+    try:
+        visualizer.plot_diversity_metrics(history, show=False)
+        print("  ✓ Diversity metrics plot")
+    except Exception as e:
+        print(f"  ✗ Diversity metrics plot failed: {e}")
+    
+    try:
+        visualizer.plot_evolution_events(history, show=False)
+        print("  ✓ Evolution events plot")
+    except Exception as e:
+        print(f"  ✗ Evolution events plot failed: {e}")
+    
+    try:
+        visualizer.plot_architecture_distribution(trees_data, method='pca', show=False)
+        print("  ✓ Architecture distribution (PCA) plot")
+    except Exception as e:
+        print(f"  ✗ Architecture distribution plot: {e}")
+    
+    try:
+        visualizer.plot_performance_heatmap(trees_data, show=False)
+        print("  ✓ Performance heatmap")
+    except Exception as e:
+        print(f"  ✗ Performance heatmap failed: {e}")
+    
+    try:
+        visualizer.plot_species_tree(genealogy_data, show=False)
+        print("  ✓ Species/genealogy tree")
+    except Exception as e:
+        print(f"  ✗ Species tree plot: {e}")
+    
+    # Test dashboard
+    print("\nc) Creating comprehensive evolution dashboard...")
+    try:
+        visualizer.create_evolution_dashboard(
+            history, 
+            trees_data, 
+            genealogy_data,
+            show=False
+        )
+        print("  ✓ Evolution dashboard created")
+    except Exception as e:
+        print(f"  ✗ Dashboard creation failed: {e}")
+    
+    # Export all plots
+    print("\nd) Exporting all visualization plots...")
+    try:
+        saved_files = visualizer.export_all_plots(
+            history,
+            trees_data,
+            genealogy_data,
+            prefix="phase5_demo"
+        )
+        print(f"  ✓ Exported {len(saved_files)} visualizations")
+        for plot_type, path in saved_files.items():
+            print(f"    - {plot_type}: {path}")
+    except Exception as e:
+        print(f"  ✗ Export failed: {e}")
+    
+    print("\n✓ Visualization system demonstration complete")
     print()
 
 

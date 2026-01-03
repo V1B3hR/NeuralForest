@@ -1,20 +1,30 @@
 """
-Phase 6 Demo: Self-Evolution & Meta-Learning
+Phase 6 Demo: Self-Evolution, Meta-Learning, Cooperation & Environmental Adaptation
 
 Demonstrates the consciousness, goal management, architecture search,
-and self-improvement capabilities of NeuralForest.
+self-improvement, tree cooperation, and environmental simulation capabilities
+of NeuralForest.
 """
 
 import torch
 import sys
 import os
+import numpy as np
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from NeuralForest import ForestEcosystem, DEVICE
 from consciousness import ForestConsciousness, GoalManager
-from evolution import TreeArchitectureSearch, SelfImprovementLoop
+from evolution import (
+    TreeArchitectureSearch,
+    SelfImprovementLoop,
+    CooperationSystem,
+    EnvironmentalSimulator,
+    ClimateType,
+    StressorType,
+    DataDistributionShift,
+)
 
 
 def print_section(title):
@@ -348,10 +358,207 @@ def demo_integrated_evolution():
     print("\n✅ Integrated evolution working correctly")
 
 
+def demo_tree_cooperation():
+    """Demonstrate tree cooperation system."""
+    print_section("Tree Cooperation & Federated Learning")
+    
+    # Create cooperation system
+    cooperation = CooperationSystem()
+    print("✓ Cooperation system initialized")
+    
+    # Enable communication for trees
+    for tree_id in range(5):
+        cooperation.enable_tree_communication(tree_id, can_send=True, can_receive=True)
+    print(f"✓ Communication enabled for 5 trees")
+    
+    # Test communication
+    print("\n1. Tree Communication")
+    print("-" * 50)
+    cooperation.communication.send_message(
+        sender_id=0,
+        receiver_id=1,
+        message_type='knowledge',
+        content={'tip': 'Try lower learning rate'},
+        priority=2.0
+    )
+    cooperation.communication.broadcast_message(
+        sender_id=1,
+        receiver_ids=[2, 3, 4],
+        message_type='alert',
+        content={'warning': 'Environment becoming harsh'},
+        priority=3.0
+    )
+    print("  ✓ Sent unicast message from tree 0 to tree 1")
+    print("  ✓ Broadcast alert from tree 1 to trees 2, 3, 4")
+    
+    # Receive messages
+    messages = cooperation.communication.receive_messages(receiver_id=1, max_messages=1)
+    print(f"  ✓ Tree 1 received {len(messages)} message(s)")
+    if messages:
+        msg = messages[0]
+        print(f"    - From tree {msg.sender_id}: {msg.message_type}")
+    
+    # Test federated learning
+    print("\n2. Federated Learning")
+    print("-" * 50)
+    
+    # Create mock tree parameters
+    participating_trees = {}
+    for tree_id in range(3):
+        # Mock parameters
+        params = {
+            'layer1.weight': torch.randn(10, 5),
+            'layer1.bias': torch.randn(10),
+        }
+        participating_trees[tree_id] = {
+            'parameters': params,
+            'fitness': 3.0 + tree_id * 0.5 + np.random.rand()
+        }
+    
+    # Coordinate federated learning
+    result = cooperation.coordinate_learning(
+        participating_trees,
+        coordination_type='federated'
+    )
+    
+    print(f"  ✓ Federated learning round complete")
+    print(f"    - Participants: {result['num_participants']}")
+    print(f"    - Success: {result['success']}")
+    print(f"    - Parameters averaged: {len(result.get('averaged_parameters', {}))} layers")
+    
+    # Test knowledge distillation coordination
+    print("\n3. Knowledge Distillation")
+    print("-" * 50)
+    
+    result = cooperation.coordinate_learning(
+        participating_trees,
+        coordination_type='distillation'
+    )
+    
+    print(f"  ✓ Distillation coordination complete")
+    print(f"    - Teacher tree: {result['teacher_tree']}")
+    print(f"    - Student trees: {result['student_trees']}")
+    
+    # Get cooperation summary
+    print("\n4. Cooperation Summary")
+    print("-" * 50)
+    summary = cooperation.get_cooperation_summary()
+    print(f"  Total messages: {summary['communication_stats']['total_messages']}")
+    print(f"  Federated rounds: {summary['federated_rounds']}")
+    print(f"  Transfer operations: {summary['transfer_operations']}")
+    
+    print("\n✅ Tree cooperation system working correctly")
+
+
+def demo_environmental_simulation():
+    """Demonstrate environmental simulation and adaptation."""
+    print_section("Environmental Simulation & Adaptation")
+    
+    # Create environmental simulator
+    env = EnvironmentalSimulator(
+        initial_climate=ClimateType.TEMPERATE,
+        stressor_probability=0.3,
+        climate_change_rate=0.1
+    )
+    print("✓ Environmental simulator initialized")
+    print(f"  Initial climate: {env.current_state.climate.value}")
+    
+    # Simulate environmental steps
+    print("\n1. Environmental Evolution (10 steps)")
+    print("-" * 50)
+    
+    for step in range(10):
+        state = env.step()
+        
+        if step % 3 == 0:
+            print(f"\n  Step {step}:")
+            print(f"    Climate: {state.climate.value}")
+            print(f"    Temperature: {state.temperature:.2f}")
+            print(f"    Resources: {state.resource_availability:.2f}")
+            print(f"    Data quality: {state.data_quality:.2f}")
+            print(f"    Competition: {state.competition_level:.2f}")
+            if state.active_stressors:
+                stressors = [s.value for s in state.active_stressors]
+                print(f"    Active stressors: {', '.join(stressors)}")
+    
+    # Test climate changes
+    print("\n2. Climate Variation")
+    print("-" * 50)
+    
+    climates = [ClimateType.TROPICAL, ClimateType.ARCTIC, ClimateType.DESERT]
+    for climate in climates:
+        env.set_climate(climate)
+        state = env.step()
+        print(f"  {climate.value.capitalize()}:")
+        print(f"    Resources: {state.resource_availability:.2f}")
+        print(f"    Quality: {state.data_quality:.2f}")
+    
+    # Test environmental stressors
+    print("\n3. Environmental Stressors")
+    print("-" * 50)
+    
+    # Reset to temperate
+    env.set_climate(ClimateType.TEMPERATE)
+    
+    stressors = [StressorType.DROUGHT, StressorType.FLOOD, StressorType.DISEASE]
+    for stressor in stressors:
+        env.trigger_stressor(stressor)
+        state = env.step()
+        severity = env._calculate_severity()
+        print(f"  {stressor.value.capitalize()}:")
+        print(f"    Resources: {state.resource_availability:.2f}")
+        print(f"    Quality: {state.data_quality:.2f}")
+        print(f"    Severity: {severity}")
+    
+    # Test data transformation
+    print("\n4. Environmental Effects on Data")
+    print("-" * 50)
+    
+    # Create test data
+    original_x = torch.randn(100, 2)
+    original_y = torch.randn(100, 1)
+    
+    # Apply environmental effects
+    modified_x, modified_y = env.apply_to_data(original_x, original_y)
+    
+    print(f"  Original data: {original_x.shape[0]} samples")
+    print(f"  Modified data: {modified_x.shape[0]} samples")
+    print(f"  Sample reduction: {(1 - modified_x.shape[0] / original_x.shape[0]) * 100:.1f}%")
+    
+    # Data distribution shift
+    print("\n5. Data Distribution Shift")
+    print("-" * 50)
+    
+    shift_types = ['gradual', 'sudden', 'cyclical']
+    for shift_type in shift_types:
+        shifter = DataDistributionShift(shift_type=shift_type, shift_rate=0.02)
+        
+        # Simulate several steps
+        for _ in range(10):
+            test_data = torch.randn(50, 2)
+            shifted_data, _ = shifter.apply_shift(test_data)
+        
+        info = shifter.get_shift_info()
+        print(f"  {shift_type.capitalize()}:")
+        print(f"    Time steps: {info['time_step']}")
+        print(f"    Shifts recorded: {info['num_shifts']}")
+    
+    # Get environmental summary
+    print("\n6. Environmental Summary")
+    print("-" * 50)
+    summary = env.get_state_summary()
+    print(f"  Current climate: {summary['climate']}")
+    print(f"  Resource availability: {summary['resource_availability']:.2f}")
+    print(f"  Data quality: {summary['data_quality']:.2f}")
+    print(f"  Overall severity: {summary['severity']}")
+    
+    print("\n✅ Environmental simulation system working correctly")
+
+
 def main():
     """Run all Phase 6 demonstrations."""
     print("\n" + "=" * 70)
-    print("  NEURALFOREST PHASE 6: SELF-EVOLUTION & META-LEARNING")
+    print("  NEURALFOREST PHASE 6: COOPERATION & ENVIRONMENTAL ADAPTATION")
     print("=" * 70)
 
     try:
@@ -360,11 +567,13 @@ def main():
         demo_architecture_search()
         demo_self_improvement()
         demo_integrated_evolution()
+        demo_tree_cooperation()
+        demo_environmental_simulation()
 
         print("\n" + "=" * 70)
         print("  ✅ PHASE 6 COMPLETE - ALL SYSTEMS OPERATIONAL")
         print("=" * 70)
-        print("\n🌲 The forest is now self-aware and continuously improving! 🌲\n")
+        print("\n🌲 The forest cooperates, adapts, and thrives! 🌲\n")
 
     except Exception as e:
         print(f"\n❌ Error during demo: {e}")
