@@ -261,7 +261,7 @@ class TreeExpert(nn.Module):
 # 4) Forest ecosystem (per-tree arch + correct snapshot + checkpoints)
 # ----------------------------
 class ForestEcosystem(nn.Module):
-    def __init__(self, input_dim, hidden_dim=32, max_trees=24):
+    def __init__(self, input_dim, hidden_dim=32, max_trees=24, enable_graveyard=True):
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -275,6 +275,24 @@ class ForestEcosystem(nn.Module):
         self.anchors = AnchorCoreset(capacity=256)
 
         self.tree_counter = 0
+        
+        # Tree Graveyard for Phase 3b: Legacy & Memory Management
+        self.enable_graveyard = enable_graveyard
+        if enable_graveyard:
+            try:
+                from evolution.tree_graveyard import TreeGraveyard
+                self.graveyard = TreeGraveyard(
+                    max_records=10000,
+                    save_weights=False,  # Can enable for full archival
+                    auto_save=True,
+                )
+            except ImportError:
+                self.graveyard = None
+        else:
+            self.graveyard = None
+        
+        # Track current generation for graveyard
+        self.current_generation = 0
 
         # Optional per-forest distribution / defaults for new trees
         self.default_arch = TreeArch(
@@ -311,8 +329,17 @@ class ForestEcosystem(nn.Module):
             best_dist = float("inf")
             for other in self.trees[:-1]:
                 dist = 0.0
-                for p1, p2 in zip(new_tree.parameters(), other.parameters()):
-                    dist += (p1.detach() - p2.detach()).norm().item()
+                try:
+                    for p1, p2 in zip(new_tree.parameters(), other.parameters()):
+                        # Only compare if shapes match
+                        if p1.shape == p2.shape:
+                            dist += (p1.detach() - p2.detach()).norm().item()
+                        else:
+                            # Use a shape mismatch penalty
+                            dist += 100.0
+                except Exception:
+                    dist = float("inf")
+                
                 if dist < best_dist:
                     best_dist = dist
                     best = other
@@ -321,7 +348,16 @@ class ForestEcosystem(nn.Module):
 
         self.tree_counter += 1
 
-    def _prune_trees(self, ids_to_remove, min_keep=2):
+    def _prune_trees(self, ids_to_remove, min_keep=2, reason="low_fitness", resource_history=None):
+        """
+        Prune trees from the forest, archiving them in the graveyard before removal.
+        
+        Args:
+            ids_to_remove: List of tree IDs to remove
+            min_keep: Minimum number of trees to keep in the forest
+            reason: Reason for elimination (for graveyard records)
+            resource_history: Optional resource allocation history for eliminated trees
+        """
         if self.num_trees() <= min_keep:
             return
 
@@ -333,11 +369,103 @@ class ForestEcosystem(nn.Module):
             keep = sorted_by_fit[:min_keep]
 
         removed_ids = {t.id for t in self.trees} - {t.id for t in keep}
+        
+        # Archive eliminated trees to graveyard before removal
+        if self.graveyard is not None and removed_ids:
+            trees_to_archive = [t for t in self.trees if t.id in removed_ids]
+            for tree in trees_to_archive:
+                # Extract parent IDs from graph edges
+                parent_ids = []
+                if self.graph.has_node(tree.id):
+                    parent_ids = list(self.graph.neighbors(tree.id))
+                
+                # Archive the tree
+                self.graveyard.archive_tree(
+                    tree=tree,
+                    elimination_reason=reason,
+                    generation=self.current_generation,
+                    recent_disruptions=[],  # Could be tracked separately
+                    resource_history=resource_history,
+                    parent_ids=parent_ids,
+                    children_ids=[],  # Could be tracked if we maintain genealogy
+                )
+        
         self.trees = nn.ModuleList(keep).to(DEVICE)
 
         for rid in removed_ids:
             if self.graph.has_node(rid):
                 self.graph.remove_node(rid)
+    
+    def resurrect_tree(self, tree_id: Optional[int] = None, min_fitness: float = 3.0):
+        """
+        Resurrect a tree from the graveyard and plant it in the forest.
+        
+        Args:
+            tree_id: Specific tree ID to resurrect (if None, picks best candidate)
+            min_fitness: Minimum fitness threshold for auto-selection
+        
+        Returns:
+            The resurrected tree if successful, None otherwise
+        """
+        if self.graveyard is None:
+            return None
+        
+        if self.num_trees() >= self.max_trees:
+            return None
+        
+        # Get resurrection candidate
+        if tree_id is not None:
+            record = self.graveyard.get_record(tree_id)
+            if record is None:
+                return None
+        else:
+            # Get best candidate automatically
+            candidates = self.graveyard.get_resurrection_candidates(
+                min_fitness=min_fitness,
+                limit=1
+            )
+            if not candidates:
+                return None
+            record = candidates[0]
+        
+        # Resurrect the tree
+        resurrected = self.graveyard.resurrect_tree(
+            record=record,
+            tree_class=TreeExpert,
+            input_dim=self.input_dim,
+            new_tree_id=self.tree_counter,
+        )
+        
+        # Add to forest
+        self.trees.append(resurrected.to(DEVICE))
+        self.graph.add_node(resurrected.id)
+        
+        # Connect to existing trees (same as _plant_tree)
+        if self.num_trees() > 1:
+            best = None
+            best_dist = float("inf")
+            for other in self.trees[:-1]:
+                dist = 0.0
+                try:
+                    for p1, p2 in zip(resurrected.parameters(), other.parameters()):
+                        # Only compare if shapes match
+                        if p1.shape == p2.shape:
+                            dist += (p1.detach() - p2.detach()).norm().item()
+                        else:
+                            # Use a shape mismatch penalty
+                            dist += 100.0
+                except Exception:
+                    dist = float("inf")
+                
+                if dist < best_dist:
+                    best_dist = dist
+                    best = other
+            if best is not None:
+                self.graph.add_edge(resurrected.id, best.id, weight=2.0)
+        
+        self.tree_counter += 1
+        
+        return resurrected
 
     @torch.no_grad()
     def snapshot_teacher(self):
