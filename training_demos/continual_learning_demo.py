@@ -67,6 +67,40 @@ def flatten_images(images):
     return images.view(batch_size, -1)
 
 
+def topk_softmax(scores, k):
+    """Helper function for top-k softmax routing."""
+    B, T = scores.shape
+    k = min(k, T)
+    topv, topi = torch.topk(scores, k=k, dim=1)
+    w = torch.softmax(topv, dim=1)
+    weights = torch.zeros_like(scores)
+    weights.scatter_(1, topi, w)
+    return weights
+
+
+def extract_forest_features(forest, x, top_k=3):
+    """Extract feature representations from the forest."""
+    T = forest.num_trees()
+    scores = forest.router(x, num_trees=T)
+    weights = topk_softmax(scores, k=min(top_k, T))
+    
+    # Get trunk features from each tree
+    features = []
+    for tree in forest.trees:
+        h = tree.trunk(x)
+        if tree.use_residual and tree.skip_proj is not None:
+            skip = tree.skip_proj(x)
+            if skip.shape == h.shape:
+                h = h + skip
+        features.append(h)
+    
+    # Stack and weight features
+    feature_stack = torch.stack(features, dim=1)
+    weighted_features = (feature_stack * weights.unsqueeze(-1)).sum(dim=1)
+    
+    return weighted_features
+
+
 def evaluate_model(forest, task_head, data_loader, device):
     """Evaluate model on dataset."""
     forest.eval()
@@ -84,11 +118,11 @@ def evaluate_model(forest, task_head, data_loader, device):
             # Flatten images
             flat_images = flatten_images(images)
             
-            # Forward through forest
-            forest_output = forest(flat_images)
+            # Extract features from forest
+            forest_features = extract_forest_features(forest, flat_images)
             
             # Forward through task head
-            logits = task_head(forest_output)
+            logits = task_head(forest_features)
             
             # Calculate loss
             loss = task_head.get_loss(logits, labels)
@@ -123,10 +157,10 @@ def train_epoch(forest, task_head, simulator, train_loader, optimizer, device):
         
         # Forward through forest
         optimizer.zero_grad()
-        forest_output = forest(flat_images)
+        forest_features = extract_forest_features(forest, flat_images)
         
         # Forward through task head
-        logits = task_head(forest_output)
+        logits = task_head(forest_features)
         
         # Calculate loss
         loss = task_head.get_loss(logits, labels)
