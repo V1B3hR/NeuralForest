@@ -49,3 +49,11 @@ Thumbs.db
 # Test coverage
 .coverage
 htmlcov/
+
+# Training data and datasets
+data/
+datasets/
+
+# Large result files (keep structure, ignore large files)
+training_demos/results/*/checkpoints/*.pt
+training_demos/results/*/checkpoints/*.pth
