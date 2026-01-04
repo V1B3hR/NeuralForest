@@ -30,12 +30,13 @@ from training_demos.utils import DatasetLoader, MetricsTracker
 
 
 # Training Configuration
+# Using abbreviated version (10 epochs) for CI environment
 CONFIG = {
     'dataset': 'CIFAR-10',
-    'epochs': 100,
+    'epochs': 10,  # Changed from 100 for CI environment
     'batch_size': 128,
     'learning_rate': 0.001,
-    'checkpoint_every': 20,
+    'checkpoint_every': 5,  # Changed from 20 for CI environment
     
     # Forest params
     'input_dim': 3072,  # 32*32*3
