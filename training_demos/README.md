@@ -32,17 +32,58 @@ python training_demos/test_smoke.py
 
 #### 1. CIFAR-10 Full Training (~20-30 minutes on GPU, longer on CPU)
 
+**Quick Start (100 epochs):**
+
 ```bash
-python training_demos/cifar10_full_training.py
+# Using default configuration
+python training_demos/cifar10_full_training.py --epochs 100
+
+# Or use the convenience script
+./training_demos/run_full_training.sh
+```
+
+**Custom Configuration:**
+
+```bash
+python training_demos/cifar10_full_training.py \
+    --epochs 100 \
+    --batch_size 256 \
+    --learning_rate 0.0005 \
+    --max_trees 20 \
+    --competition_fairness 0.2 \
+    --output_dir training_demos/results/custom_run
+```
+
+**Available Arguments:**
+
+- `--epochs`: Number of training epochs (default: 100)
+- `--batch_size`: Batch size (default: 128)
+- `--learning_rate`: Learning rate (default: 0.001)
+- `--checkpoint_every`: Checkpoint frequency (default: 20)
+- `--max_trees`: Maximum trees (default: 15)
+- `--competition_fairness`: Fairness factor 0-1 (default: 0.3)
+- `--selection_threshold`: Selection threshold (default: 0.25)
+- `--prune_every`: Prune every N epochs (default: 10)
+- `--plant_every`: Plant every N epochs (default: 15)
+- `--input_dim`: Input dimension (default: 3072)
+- `--hidden_dim`: Hidden dimension (default: 128)
+- `--num_classes`: Number of classes (default: 10)
+- `--dropout`: Dropout rate (default: 0.3)
+- `--output_dir`: Results directory (default: training_demos/results/cifar10_full_100ep)
+
+See `--help` for all options:
+
+```bash
+python training_demos/cifar10_full_training.py --help
 ```
 
 **What it does:**
-- Trains NeuralForest on CIFAR-10 for 100 epochs
-- Saves checkpoints every 20 epochs
+- Trains NeuralForest on CIFAR-10 for specified epochs
+- Saves checkpoints at regular intervals
 - Tracks comprehensive metrics (accuracy, loss, trees, fitness, etc.)
 - Generates learning curves and final report
 
-**Results location:** `training_demos/results/cifar10_full/`
+**Results location:** Specified by `--output_dir` (default: `training_demos/results/cifar10_full_100ep/`)
 
 #### 2. Continual Learning (~30-40 minutes)
 
