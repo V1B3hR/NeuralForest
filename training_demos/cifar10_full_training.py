@@ -393,12 +393,31 @@ def generate_report(results_dir, tracker, forest, best_accuracy, total_time, arg
     """Generate final training report."""
     report_path = results_dir / "final_report.md"
     
+    # Create human-readable labels for configuration parameters
+    arg_labels = {
+        'epochs': 'Training Epochs',
+        'batch_size': 'Batch Size',
+        'learning_rate': 'Learning Rate',
+        'checkpoint_every': 'Checkpoint Frequency',
+        'input_dim': 'Input Dimension',
+        'hidden_dim': 'Hidden Dimension',
+        'max_trees': 'Maximum Trees',
+        'competition_fairness': 'Competition Fairness',
+        'selection_threshold': 'Selection Threshold',
+        'prune_every': 'Prune Every N Epochs',
+        'plant_every': 'Plant Every N Epochs',
+        'num_classes': 'Number of Classes',
+        'dropout': 'Dropout Rate',
+        'output_dir': 'Output Directory'
+    }
+    
     with open(report_path, 'w') as f:
         f.write("# CIFAR-10 Training Report\n\n")
         
         f.write("## Configuration\n\n")
         for arg, value in vars(args).items():
-            f.write(f"- **{arg}**: {value}\n")
+            label = arg_labels.get(arg, arg.replace('_', ' ').title())
+            f.write(f"- **{label}**: {value}\n")
         
         f.write("\n## Results\n\n")
         f.write(f"- **Training Time**: {total_time/60:.1f} minutes\n")
@@ -414,10 +433,10 @@ def generate_report(results_dir, tracker, forest, best_accuracy, total_time, arg
         
         # Final metrics
         final_metrics = {
-            'train_acc': tracker.history['train_accuracy'][-1],
-            'test_acc': tracker.history['test_accuracy'][-1],
-            'num_trees': tracker.history['num_trees'][-1],
-            'avg_fitness': tracker.history['avg_fitness'][-1],
+            'Train Accuracy': tracker.history['train_accuracy'][-1],
+            'Test Accuracy': tracker.history['test_accuracy'][-1],
+            'Number of Trees': tracker.history['num_trees'][-1],
+            'Average Fitness': tracker.history['avg_fitness'][-1],
         }
         
         f.write("### Final Metrics\n\n")
