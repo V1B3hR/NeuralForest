@@ -101,17 +101,19 @@ class EnhancedTaskHead(nn.Module):
         """Initialize weights using Kaiming initialization."""
         # Determine nonlinearity for initialization based on activation
         if isinstance(self.activation, nn.GELU):
-            nonlinearity = 'relu'  # GELU approximates ReLU-like behavior
+            # GELU has different characteristics but we use relu for stability
+            nonlinearity = 'relu'
         elif isinstance(self.activation, nn.LeakyReLU):
             nonlinearity = 'leaky_relu'
         else:  # ReLU
             nonlinearity = 'relu'
         
-        # Kaiming initialization for layers
+        # Kaiming initialization for fc1 (followed by activation)
         nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity=nonlinearity)
         nn.init.zeros_(self.fc1.bias)
         
-        nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity=nonlinearity)
+        # Xavier initialization for fc2 (output layer, no activation)
+        nn.init.xavier_normal_(self.fc2.weight)
         nn.init.zeros_(self.fc2.bias)
         
         if self.skip is not None:

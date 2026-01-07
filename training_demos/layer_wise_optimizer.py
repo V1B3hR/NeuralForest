@@ -69,8 +69,10 @@ class ImprovedTreeAgeSystem:
         self.tree_ages = {}  # tree_id -> epoch_age
         self.tree_fitness = {}  # tree_id -> fitness_value
     
-    def register_tree(self, tree_id: int, epoch_age: int = 0, fitness: float = 5.0):
+    def register_tree(self, tree_id: int, epoch_age: int = 0, fitness: float = None):
         """Register a tree with its age and fitness."""
+        if fitness is None:
+            fitness = self.config.fitness_scale
         self.tree_ages[tree_id] = epoch_age
         self.tree_fitness[tree_id] = fitness
     
@@ -150,6 +152,11 @@ class ImprovedTreeAgeSystem:
         """
         combined_factor = self.compute_combined_factor(tree_id)
         return base_scale * combined_factor
+
+
+# Layer categorization thresholds
+EARLY_LAYER_THRESHOLD = 0.33
+LATE_LAYER_THRESHOLD = 0.67
 
 
 class LayerWiseOptimizer:
@@ -271,9 +278,9 @@ class LayerWiseOptimizer:
                     # Determine category based on position
                     position = idx / max(num_layers - 1, 1)
                     
-                    if position < 0.33:
+                    if position < EARLY_LAYER_THRESHOLD:
                         categories['early_trunk'].extend([p for p in layer.parameters()])
-                    elif position < 0.67:
+                    elif position < LATE_LAYER_THRESHOLD:
                         categories['middle_trunk'].extend([p for p in layer.parameters()])
                     else:
                         categories['late_trunk'].extend([p for p in layer.parameters()])

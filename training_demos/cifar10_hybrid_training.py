@@ -34,6 +34,11 @@ from training_demos.enhanced_task_head import EnhancedTaskHead
 from training_demos.utils import DatasetLoader, MetricsTracker
 
 
+# Constants
+TREE_SEED_OFFSET = 1000  # Offset for generating unique tree seeds
+ECOSYSTEM_SIMULATION_FREQ = 10  # Frequency of ecosystem simulation (every N batches)
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -137,7 +142,7 @@ def plant_tree_with_unique_seed(forest, base_seed, tree_id, arch=None):
         arch: Optional TreeArch for the new tree
     """
     # Generate unique seed for this tree
-    tree_seed = base_seed + tree_id * 1000
+    tree_seed = base_seed + tree_id * TREE_SEED_OFFSET
     
     # Save current RNG state
     cpu_state = torch.get_rng_state()
@@ -242,7 +247,7 @@ def train_epoch(forest, task_head, simulator, train_loader, optimizer, epoch, de
         total += labels.size(0)
         
         # Simulate ecosystem generation (competition and evolution)
-        if batch_idx % 10 == 0:
+        if batch_idx % ECOSYSTEM_SIMULATION_FREQ == 0:
             # Create synthetic targets for forest internal training
             forest_targets = torch.randn(flat_images.size(0), 1).to(device)
             simulator.simulate_generation(
