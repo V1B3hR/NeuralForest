@@ -99,15 +99,23 @@ class EnhancedTaskHead(nn.Module):
     
     def _init_weights(self):
         """Initialize weights using Kaiming initialization."""
-        # Kaiming initialization for layers with ReLU-like activations
-        nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
+        # Determine nonlinearity for initialization based on activation
+        if isinstance(self.activation, nn.GELU):
+            nonlinearity = 'relu'  # GELU approximates ReLU-like behavior
+        elif isinstance(self.activation, nn.LeakyReLU):
+            nonlinearity = 'leaky_relu'
+        else:  # ReLU
+            nonlinearity = 'relu'
+        
+        # Kaiming initialization for layers
+        nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity=nonlinearity)
         nn.init.zeros_(self.fc1.bias)
         
-        nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
+        nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity=nonlinearity)
         nn.init.zeros_(self.fc2.bias)
         
         if self.skip is not None:
-            nn.init.kaiming_normal_(self.skip.weight, mode='fan_in', nonlinearity='relu')
+            nn.init.kaiming_normal_(self.skip.weight, mode='fan_in', nonlinearity=nonlinearity)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

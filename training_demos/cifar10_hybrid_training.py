@@ -56,7 +56,7 @@ def parse_args():
     parser.add_argument('--input_dim', type=int, default=3072, 
                        help='Input dimension (32*32*3)')
     parser.add_argument('--hidden_dim', type=int, default=512,
-                       help='Hidden dimension (default: 512)')
+                       help='Forest hidden dimension (default: 512 for richer representations)')
     parser.add_argument('--max_trees', type=int, default=12, 
                        help='Maximum number of trees')
     parser.add_argument('--initial_trees', type=int, default=6,

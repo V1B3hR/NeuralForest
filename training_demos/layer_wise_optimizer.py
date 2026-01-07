@@ -36,6 +36,7 @@ class LayerWiseConfig:
     early_trunk_multiplier: float = 0.1  # Early layers learn slowly
     middle_trunk_multiplier: float = 0.5  # Middle layers moderate
     late_trunk_multiplier: float = 1.0   # Late layers learn fast
+    tree_head_multiplier: float = 1.0    # Tree heads same as late trunk
     task_head_multiplier: float = 2.0    # Task head learns fastest
     
     # Warmup parameters
@@ -362,7 +363,7 @@ class LayerWiseOptimizer:
             
             # Tree head
             if layer_categories['head']:
-                base_scale = self.config.late_trunk_multiplier
+                base_scale = self.config.tree_head_multiplier
                 tree_scale = self.age_system.get_tree_lr_scale(tree_id, base_scale)
                 lr = self.config.base_lr * tree_scale * warmup_factor * schedule_factor
                 lr = max(lr, self.config.min_lr)
