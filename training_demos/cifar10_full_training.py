@@ -13,6 +13,7 @@ Complete 100-epoch training on CIFAR-10 with:
 import sys
 import os
 import time
+import argparse
 from pathlib import Path
 
 # Add parent directory to path
@@ -29,30 +30,36 @@ from tasks.vision.classification import ImageClassification
 from training_demos.utils import DatasetLoader, MetricsTracker
 
 
-# Training Configuration
-# Using abbreviated version (10 epochs) for CI environment
-CONFIG = {
-    'dataset': 'CIFAR-10',
-    'epochs': 10,  # Changed from 100 for CI environment
-    'batch_size': 128,
-    'learning_rate': 0.001,
-    'checkpoint_every': 5,  # Changed from 20 for CI environment
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description='CIFAR-10 Full Training with NeuralForest')
     
-    # Forest params
-    'input_dim': 3072,  # 32*32*3
-    'hidden_dim': 128,
-    'max_trees': 15,
+    # Training parameters
+    parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
+    parser.add_argument('--batch_size', type=int, default=128, help='Batch size for training')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--checkpoint_every', type=int, default=20, help='Save checkpoint every N epochs')
     
-    # Ecosystem params
-    'competition_fairness': 0.3,
-    'selection_threshold': 0.25,
-    'prune_every': 10,
-    'plant_every': 15,
+    # Forest parameters
+    parser.add_argument('--input_dim', type=int, default=3072, help='Input dimension (32*32*3)')
+    parser.add_argument('--hidden_dim', type=int, default=128, help='Hidden dimension')
+    parser.add_argument('--max_trees', type=int, default=15, help='Maximum number of trees')
     
-    # Task head
-    'num_classes': 10,
-    'dropout': 0.3,
-}
+    # Ecosystem parameters
+    parser.add_argument('--competition_fairness', type=float, default=0.3, help='Competition fairness (0-1)')
+    parser.add_argument('--selection_threshold', type=float, default=0.25, help='Selection threshold')
+    parser.add_argument('--prune_every', type=int, default=10, help='Prune every N epochs')
+    parser.add_argument('--plant_every', type=int, default=15, help='Plant every N epochs')
+    
+    # Task parameters
+    parser.add_argument('--num_classes', type=int, default=10, help='Number of classes')
+    parser.add_argument('--dropout', type=float, default=0.3, help='Dropout rate')
+    
+    # Output
+    parser.add_argument('--output_dir', type=str, default='training_demos/results/cifar10_full_100ep',
+                       help='Output directory for results')
+    
+    return parser.parse_args()
 
 
 def flatten_images(images):
@@ -221,16 +228,19 @@ def get_architecture_diversity(forest):
 
 def main():
     """Main training loop."""
+    args = parse_args()
+    
     print("=" * 70)
     print("CIFAR-10 Full Training Demonstration")
     print("=" * 70)
     print(f"\nDevice: {DEVICE}")
+    print(f"\n🚀 Starting CIFAR-10 training with {args.epochs} epochs")
     print(f"Configuration:")
-    for key, value in CONFIG.items():
-        print(f"  {key}: {value}")
+    for arg, value in vars(args).items():
+        print(f"  {arg}: {value}")
     
     # Create results directory
-    results_dir = Path("training_demos/results/cifar10_full")
+    results_dir = Path(args.output_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
     checkpoints_dir = results_dir / "checkpoints"
     checkpoints_dir.mkdir(exist_ok=True)
@@ -238,7 +248,7 @@ def main():
     # Load dataset
     print("\n📊 Loading CIFAR-10 dataset...")
     train_loader, test_loader = DatasetLoader.get_cifar10(
-        batch_size=CONFIG['batch_size'],
+        batch_size=args.batch_size,
         num_workers=2
     )
     print(f"✅ Training samples: {len(train_loader.dataset)}")
@@ -247,9 +257,9 @@ def main():
     # Create forest
     print("\n🌲 Initializing Neural Forest...")
     forest = ForestEcosystem(
-        input_dim=CONFIG['input_dim'],
-        hidden_dim=CONFIG['hidden_dim'],
-        max_trees=CONFIG['max_trees'],
+        input_dim=args.input_dim,
+        hidden_dim=args.hidden_dim,
+        max_trees=args.max_trees,
         enable_graveyard=True
     ).to(DEVICE)
     
@@ -263,9 +273,9 @@ def main():
     # Create task head
     print("\n🎯 Creating image classification head...")
     task_head = ImageClassification(
-        input_dim=CONFIG['hidden_dim'],
-        num_classes=CONFIG['num_classes'],
-        dropout=CONFIG['dropout']
+        input_dim=args.hidden_dim,
+        num_classes=args.num_classes,
+        dropout=args.dropout
     ).to(DEVICE)
     print("✅ Task head ready")
     
@@ -273,9 +283,9 @@ def main():
     print("\n🌍 Initializing ecosystem simulator...")
     simulator = EcosystemSimulator(
         forest,
-        competition_fairness=CONFIG['competition_fairness'],
-        selection_threshold=CONFIG['selection_threshold'],
-        learning_rate=CONFIG['learning_rate'],
+        competition_fairness=args.competition_fairness,
+        selection_threshold=args.selection_threshold,
+        learning_rate=args.learning_rate,
         enable_replay=True,
         enable_anchors=True,
         device=DEVICE
@@ -285,7 +295,7 @@ def main():
     # Create optimizer (for forest + task head)
     optimizer = optim.Adam(
         list(forest.parameters()) + list(task_head.parameters()),
-        lr=CONFIG['learning_rate']
+        lr=args.learning_rate
     )
     
     # Create metrics tracker
@@ -298,7 +308,7 @@ def main():
     best_accuracy = 0.0
     start_time = time.time()
     
-    for epoch in range(1, CONFIG['epochs'] + 1):
+    for epoch in range(1, args.epochs + 1):
         epoch_start = time.time()
         
         # Train
@@ -327,14 +337,14 @@ def main():
         epoch_time = time.time() - epoch_start
         
         # Print progress
-        print(f"\nEpoch {epoch}/{CONFIG['epochs']} ({epoch_time:.1f}s)")
+        print(f"\nEpoch {epoch}/{args.epochs} ({epoch_time:.1f}s)")
         print(f"  Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%")
         print(f"  Test Loss:  {test_loss:.4f} | Test Acc:  {test_acc:.2f}%")
         print(f"  Trees: {metrics['num_trees']} | Avg Fitness: {metrics['avg_fitness']:.2f}")
         print(f"  Arch Diversity: {metrics['architecture_diversity']} | Memory: {metrics['memory_size']}")
         
         # Save checkpoint
-        if epoch % CONFIG['checkpoint_every'] == 0:
+        if epoch % args.checkpoint_every == 0:
             checkpoint_path = checkpoints_dir / f"epoch_{epoch}.pt"
             save_checkpoint(forest, task_head, optimizer, epoch, checkpoint_path)
         
@@ -346,12 +356,12 @@ def main():
             print(f"  🌟 New best accuracy: {best_accuracy:.2f}%")
         
         # Prune and plant trees periodically
-        if epoch % CONFIG['prune_every'] == 0 and epoch > 10:
+        if epoch % args.prune_every == 0 and epoch > 10:
             num_pruned = simulator.apply_selection()
             if num_pruned > 0:
                 print(f"  🌳 Pruned {num_pruned} weak trees")
         
-        if epoch % CONFIG['plant_every'] == 0 and forest.num_trees() < CONFIG['max_trees']:
+        if epoch % args.plant_every == 0 and forest.num_trees() < args.max_trees:
             forest._plant_tree()
             print(f"  🌱 Planted new tree (total: {forest.num_trees()})")
     
@@ -372,23 +382,42 @@ def main():
     
     # Generate final report
     print("\n📝 Generating final report...")
-    generate_report(results_dir, tracker, forest, best_accuracy, total_time)
+    generate_report(results_dir, tracker, forest, best_accuracy, total_time, args)
     print("✅ Report generated")
     
     print(f"\n📁 Results saved to: {results_dir}")
     print("\n🎉 Done!")
 
 
-def generate_report(results_dir, tracker, forest, best_accuracy, total_time):
+def generate_report(results_dir, tracker, forest, best_accuracy, total_time, args):
     """Generate final training report."""
     report_path = results_dir / "final_report.md"
+    
+    # Create human-readable labels for configuration parameters
+    arg_labels = {
+        'epochs': 'Training Epochs',
+        'batch_size': 'Batch Size',
+        'learning_rate': 'Learning Rate',
+        'checkpoint_every': 'Checkpoint Frequency',
+        'input_dim': 'Input Dimension',
+        'hidden_dim': 'Hidden Dimension',
+        'max_trees': 'Maximum Trees',
+        'competition_fairness': 'Competition Fairness',
+        'selection_threshold': 'Selection Threshold',
+        'prune_every': 'Prune Every N Epochs',
+        'plant_every': 'Plant Every N Epochs',
+        'num_classes': 'Number of Classes',
+        'dropout': 'Dropout Rate',
+        'output_dir': 'Output Directory'
+    }
     
     with open(report_path, 'w') as f:
         f.write("# CIFAR-10 Training Report\n\n")
         
         f.write("## Configuration\n\n")
-        for key, value in CONFIG.items():
-            f.write(f"- **{key}**: {value}\n")
+        for arg, value in vars(args).items():
+            label = arg_labels.get(arg, arg.replace('_', ' ').title())
+            f.write(f"- **{label}**: {value}\n")
         
         f.write("\n## Results\n\n")
         f.write(f"- **Training Time**: {total_time/60:.1f} minutes\n")
@@ -404,10 +433,10 @@ def generate_report(results_dir, tracker, forest, best_accuracy, total_time):
         
         # Final metrics
         final_metrics = {
-            'train_acc': tracker.history['train_accuracy'][-1],
-            'test_acc': tracker.history['test_accuracy'][-1],
-            'num_trees': tracker.history['num_trees'][-1],
-            'avg_fitness': tracker.history['avg_fitness'][-1],
+            'Train Accuracy': tracker.history['train_accuracy'][-1],
+            'Test Accuracy': tracker.history['test_accuracy'][-1],
+            'Number of Trees': tracker.history['num_trees'][-1],
+            'Average Fitness': tracker.history['avg_fitness'][-1],
         }
         
         f.write("### Final Metrics\n\n")
