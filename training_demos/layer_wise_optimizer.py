@@ -139,19 +139,20 @@ class ImprovedTreeAgeSystem:
         
         return combined
     
-    def get_tree_lr_scale(self, tree_id: int, base_scale: float = 1.0) -> float:
+    def get_tree_lr_scale(self, tree_id: int, layer_multiplier: float = 1.0) -> float:
         """
         Get learning rate scale for a specific tree.
         
         Args:
             tree_id: Tree identifier
-            base_scale: Base layer-wise multiplier
+            layer_multiplier: Layer-specific learning rate multiplier
+                             (e.g., 0.1 for early layers, 1.0 for late layers)
             
         Returns:
-            Final LR scale combining base, age, and fitness factors
+            Final LR scale combining layer multiplier, age, and fitness factors
         """
         combined_factor = self.compute_combined_factor(tree_id)
-        return base_scale * combined_factor
+        return layer_multiplier * combined_factor
 
 
 # Layer categorization thresholds

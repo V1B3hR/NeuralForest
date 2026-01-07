@@ -141,8 +141,8 @@ def plant_tree_with_unique_seed(forest, base_seed, tree_id, arch=None):
         tree_id: Tree identifier for unique seed generation
         arch: Optional TreeArch for the new tree
     """
-    # Generate unique seed for this tree
-    tree_seed = base_seed + tree_id * TREE_SEED_OFFSET
+    # Generate unique seed for this tree (with modulo to prevent overflow)
+    tree_seed = (base_seed + tree_id * TREE_SEED_OFFSET) % (2**31 - 1)
     
     # Save current RNG state
     cpu_state = torch.get_rng_state()

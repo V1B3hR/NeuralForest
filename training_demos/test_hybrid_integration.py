@@ -12,6 +12,7 @@ import torch.nn as nn
 from NeuralForest import ForestEcosystem, DEVICE
 from training_demos.layer_wise_optimizer import LayerWiseConfig, LayerWiseOptimizer
 from training_demos.enhanced_task_head import EnhancedTaskHead
+from training_demos.cifar10_hybrid_training import TREE_SEED_OFFSET
 
 def test_integration():
     """Test full integration of hybrid training components."""
@@ -139,7 +140,7 @@ def test_integration():
     
     def plant_tree_with_unique_seed(forest, base_seed, tree_id):
         """Plant tree with unique initialization seed."""
-        tree_seed = base_seed + tree_id * 1000
+        tree_seed = (base_seed + tree_id * TREE_SEED_OFFSET) % (2**31 - 1)
         
         # Save RNG state
         cpu_state = torch.get_rng_state()

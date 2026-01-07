@@ -265,8 +265,9 @@ class MultiHeadTaskHead(nn.Module):
         nn.init.kaiming_normal_(self.shared_fc.weight, mode='fan_in', nonlinearity='relu')
         nn.init.zeros_(self.shared_fc.bias)
         
+        # Output layers use Xavier initialization (no activation)
         for head in self.task_heads:
-            nn.init.kaiming_normal_(head.weight, mode='fan_in', nonlinearity='relu')
+            nn.init.xavier_normal_(head.weight)
             nn.init.zeros_(head.bias)
     
     def forward(self, x: torch.Tensor, task_idx: int = 0) -> torch.Tensor:
