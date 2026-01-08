@@ -30,6 +30,8 @@ from typing import Dict, List, Tuple, Optional, Any
 from collections import deque, defaultdict
 import time
 import logging
+import os
+import sys
 
 import torch
 import torch.nn as nn
@@ -1174,9 +1176,6 @@ def main():
 
 
 if __name__ == "__main__":
-    import os
-    import sys
-    
     # Check if running with arguments
     if len(sys.argv) > 1:
         main()
