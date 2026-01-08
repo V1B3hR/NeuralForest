@@ -1,4 +1,7 @@
-torch>=1.12
+torch>=2.1.0
 numpy>=1.21
 matplotlib>=3.3
 networkx>=2.5
+tensorboard>=2.12
+tqdm>=4.65
+scikit-learn>=1.2

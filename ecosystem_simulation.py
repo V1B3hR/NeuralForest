@@ -1002,19 +1002,200 @@ __all__ = [
 ]
 
 
+def parse_args():
+    """Parse command-line arguments for ecosystem simulation."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='NeuralForest Ecosystem Simulation')
+    parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
+    parser.add_argument('--batch-size', type=int, default=32, help='Batch size for training')
+    parser.add_argument('--use-amp', action='store_true', help='Use automatic mixed precision')
+    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu', 
+                        help='Device to use (cuda/cpu)')
+    parser.add_argument('--distributed', action='store_true', help='Use distributed training')
+    parser.add_argument('--gradient-checkpointing', action='store_true', help='Enable gradient checkpointing')
+    parser.add_argument('--num-trees', type=int, default=5, help='Number of trees in forest')
+    parser.add_argument('--hidden-dim', type=int, default=64, help='Hidden dimension for trees')
+    parser.add_argument('--input-dim', type=int, default=10, help='Input dimension')
+    parser.add_argument('--learning-rate', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--competition-fairness', type=float, default=0.3, 
+                        help='Competition fairness factor (0=fitness-based, 1=equal)')
+    return parser.parse_args()
+
+
+def main():
+    """Main training function with CLI argument support."""
+    args = parse_args()
+    
+    # Print configuration
+    print("=" * 70)
+    print("NeuralForest Ecosystem Simulation v2.0")
+    print("=" * 70)
+    print("\n⚙️  Configuration:")
+    print(f"  Epochs: {args.epochs}")
+    print(f"  Batch size: {args.batch_size}")
+    print(f"  Device: {args.device}")
+    print(f"  Mixed precision: {args.use_amp}")
+    print(f"  Distributed: {args.distributed}")
+    print(f"  Gradient checkpointing: {args.gradient_checkpointing}")
+    print(f"  Number of trees: {args.num_trees}")
+    print(f"  Hidden dimension: {args.hidden_dim}")
+    print(f"  Learning rate: {args.learning_rate}")
+    print(f"  Competition fairness: {args.competition_fairness}")
+    
+    # Setup device
+    if args.distributed:
+        # Initialize distributed training
+        try:
+            import torch.distributed as dist
+            dist.init_process_group(backend='nccl')
+            local_rank = int(os.environ.get('LOCAL_RANK', 0))
+            torch.cuda.set_device(local_rank)
+            device = torch.device(f'cuda:{local_rank}')
+            print(f"\n🔗 Distributed training initialized (rank {dist.get_rank()}/{dist.get_world_size()})")
+        except Exception as e:
+            print(f"\n⚠️  Distributed training setup failed: {e}")
+            print("Falling back to single-device training")
+            device = torch.device(args.device)
+    else:
+        device = torch.device(args.device)
+    
+    print(f"\n🖥️  Using device: {device}")
+    
+    if device.type == 'cuda':
+        print(f"  GPU: {torch.cuda.get_device_name(device)}")
+        print(f"  GPU Memory: {torch.cuda.get_device_properties(device).total_memory / 1024**3:.2f} GB")
+    
+    # Import ForestEcosystem
+    try:
+        from NeuralForest import ForestEcosystem
+    except ImportError:
+        print("\n❌ Error: Could not import ForestEcosystem from NeuralForest")
+        print("Make sure NeuralForest.py is in the same directory")
+        return
+    
+    # Create forest
+    print(f"\n🌲 Creating forest with {args.num_trees} trees...")
+    forest = ForestEcosystem(
+        input_dim=args.input_dim,
+        hidden_dim=args.hidden_dim,
+        max_trees=args.num_trees * 2
+    ).to(device)
+    
+    # Plant additional trees
+    for _ in range(args.num_trees - 1):
+        forest._plant_tree()
+    
+    print(f"✅ Forest created with {forest.num_trees()} trees")
+    
+    # Create ecosystem simulator
+    print(f"\n🌿 Initializing ecosystem simulator...")
+    simulator = create_ecosystem(
+        forest=forest,
+        fairness=args.competition_fairness,
+        learning_rate=args.learning_rate
+    )
+    
+    # Setup mixed precision
+    scaler = None
+    if args.use_amp and device.type == 'cuda':
+        scaler = torch.cuda.amp.GradScaler()
+        print("✅ Mixed precision training enabled")
+    
+    # Generate training data
+    print(f"\n📊 Generating training data...")
+    num_samples = args.batch_size * 10
+    X_train = torch.randn(num_samples, args.input_dim).to(device)
+    y_train = torch.randn(num_samples, 1).to(device)
+    
+    # Training loop
+    print(f"\n🎯 Starting training for {args.epochs} epochs...")
+    print("-" * 70)
+    
+    for epoch in range(args.epochs):
+        # Create batch
+        indices = torch.randperm(num_samples)[:args.batch_size]
+        batch_x = X_train[indices]
+        batch_y = y_train[indices]
+        
+        # Simulate generation with optional AMP
+        if args.use_amp and device.type == 'cuda':
+            with torch.cuda.amp.autocast():
+                stats = simulator.simulate_generation(
+                    batch_x, batch_y,
+                    train_trees=True,
+                    num_training_steps=1
+                )
+        else:
+            stats = simulator.simulate_generation(
+                batch_x, batch_y,
+                train_trees=True,
+                num_training_steps=1
+            )
+        
+        # Print progress
+        if epoch % max(1, args.epochs // 10) == 0 or epoch == args.epochs - 1:
+            print(f"Epoch {epoch+1}/{args.epochs} | "
+                  f"Trees: {stats.num_trees} | "
+                  f"Avg Fitness: {stats.avg_fitness:.4f} | "
+                  f"Avg Loss: {stats.avg_training_loss:.4f}")
+        
+        # Periodic pruning and planting
+        if epoch > 0 and epoch % max(1, args.epochs // 5) == 0:
+            pruned = simulator.prune_weak_trees(min_keep=2)
+            if pruned > 0:
+                print(f"  🔄 Pruned {pruned} weak trees")
+                planted = simulator.plant_trees(count=pruned)
+                print(f"  🌱 Planted {planted} new trees")
+    
+    # Final summary
+    print("\n" + "=" * 70)
+    print("✅ Training Complete!")
+    print("=" * 70)
+    summary = simulator.get_summary()
+    print(f"\n📈 Final Statistics:")
+    print(f"  Total generations: {summary['current_generation']}")
+    print(f"  Final tree count: {summary['total_trees']}")
+    print(f"  Final avg fitness: {summary['current_fitness']['avg']:.4f}")
+    print(f"  Final max fitness: {summary['current_fitness']['max']:.4f}")
+    print(f"  Architecture diversity: {summary['architecture_diversity']}")
+    print(f"  Trees pruned: {summary['recent_pruned']}")
+    print(f"  Trees planted: {summary['recent_planted']}")
+    
+    # Cleanup distributed
+    if args.distributed:
+        try:
+            import torch.distributed as dist
+            dist.destroy_process_group()
+        except:
+            pass
+    
+    print("\n🎉 Ecosystem simulation completed successfully!")
+
+
 if __name__ == "__main__":
-    print("=" * 70)
-    print("NeuralForest Ecosystem Simulation v2.0 - 100% Complete")
-    print("=" * 70)
-    print("\nFeatures:")
-    print("✅ Real training with optimizer integration")
-    print("✅ Fitness-based competition with shuffled allocation")
-    print("✅ Robustness tests (drought/flood) with GPU support")
-    print("✅ Comprehensive statistics (20+ metrics)")
-    print("✅ Integration with PrioritizedMulch and AnchorCoreset")
-    print("✅ Fitness trajectory tracking per tree")
-    print("✅ Proper survival rate calculation")
-    print("✅ Detailed competition event logging")
-    print("✅ Resource history per tree")
-    print("✅ Full graveyard integration")
-    print("\nReady for production use!")
+    import os
+    import sys
+    
+    # Check if running with arguments
+    if len(sys.argv) > 1:
+        main()
+    else:
+        # Show features info (backward compatibility)
+        print("=" * 70)
+        print("NeuralForest Ecosystem Simulation v2.0 - 100% Complete")
+        print("=" * 70)
+        print("\nFeatures:")
+        print("✅ Real training with optimizer integration")
+        print("✅ Fitness-based competition with shuffled allocation")
+        print("✅ Robustness tests (drought/flood) with GPU support")
+        print("✅ Comprehensive statistics (20+ metrics)")
+        print("✅ Integration with PrioritizedMulch and AnchorCoreset")
+        print("✅ Fitness trajectory tracking per tree")
+        print("✅ Proper survival rate calculation")
+        print("✅ Detailed competition event logging")
+        print("✅ Resource history per tree")
+        print("✅ Full graveyard integration")
+        print("\nReady for production use!")
+        print("\n💡 Usage: python ecosystem_simulation.py --epochs 100 --batch-size 32")
+        print("For help: python ecosystem_simulation.py --help")

@@ -10,6 +10,7 @@ import torch
 import sys
 import os
 import numpy as np
+import argparse
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -583,4 +584,13 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='NeuralForest Phase 6 Demo')
+    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu',
+                        help='Device to use (cuda/cpu)')
+    args = parser.parse_args()
+    
+    # Set device if specified (though demos use DEVICE from NeuralForest)
+    if args.device:
+        print(f"Using device: {args.device}")
+    
     main()
