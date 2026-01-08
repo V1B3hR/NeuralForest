@@ -1,5 +1,15 @@
 # NeuralForest
 
+![NeuralForest banner](banner.png)
+
+---
+
+## 💖 Sponsoruj mnie
+
+Jeśli projekt NeuralForest Ci się podoba i chcesz wesprzeć jego rozwój, możesz zostać moim sponsorem na [GitHub Sponsors](https://github.com/sponsors/V1B3hR)!
+
+---
+
 **NeuralForest v2** is an experimental neural network ecosystem combining tree experts, prioritized experience replay, coreset memory, gating/routing, drift detection, and visualization. 
 It is designed for continual learning, with robustness against data drift and dynamic expert growth/pruning.
 
