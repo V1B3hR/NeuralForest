@@ -1,0 +1,152 @@
+name: CPU Training - NeuralForest
+
+on:
+  workflow_dispatch:
+    inputs:
+      epochs:
+        description: 'Number of training epochs'
+        required: true
+        default: '100'
+        type: choice
+        options:
+          - '25'
+          - '50'
+          - '100'
+      batch_size:
+        description: 'Batch size (smaller = faster on CPU)'
+        required: true
+        default: '16'
+        type: choice
+        options:
+          - '16'
+          - '32'
+          - '64'
+      checkpoint_every:
+        description: 'Save checkpoint every N epochs'
+        required: true
+        default: '20'
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - 'training_demos/**'
+      - '.github/workflows/cpu_training.yml'
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Sunday 2 AM UTC
+
+env:
+  PYTHON_VERSION: '3.10'
+  PYTORCH_VERSION: '2.1.0'
+
+jobs:
+  train-cpu-full:
+    name: CPU Training (CIFAR-10 Hybrid)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours (GitHub limit)
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install PyTorch (CPU)
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch==${{ env.PYTORCH_VERSION }} --index-url https://download.pytorch.org/whl/cpu
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Verify installation
+        run: |
+          python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
+          python -c "import torch; print(f'CPU threads: {torch.get_num_threads()}')"
+          python -c "import sys; print(f'Python version: {sys.version}')"
+      
+      - name: Set CPU optimization flags
+        run: |
+          echo "OMP_NUM_THREADS=${{ runner.os == 'Linux' && '4' || '2' }}" >> $GITHUB_ENV
+          echo "MKL_NUM_THREADS=${{ runner.os == 'Linux' && '4' || '2' }}" >> $GITHUB_ENV
+      
+      - name: Run CPU Training
+        id: training
+        run: |
+          EPOCHS=${{ github.event.inputs.epochs || '25' }}
+          BATCH_SIZE=${{ github.event.inputs.batch_size || '16' }}
+          CHECKPOINT_EVERY=${{ github.event.inputs.checkpoint_every || '20' }}
+          
+          echo "Starting training: $EPOCHS epochs, batch size $BATCH_SIZE"
+          echo "::group::Training Output"
+          
+          python training_demos/cifar10_hybrid_training.py \
+            --epochs $EPOCHS \
+            --batch_size $BATCH_SIZE \
+            --checkpoint_every $CHECKPOINT_EVERY \
+            --device cpu \
+            --output_dir training_demos/results/cpu_training_${EPOCHS}ep
+          
+          echo "::endgroup::"
+      
+      - name: Training summary
+        if: always()
+        run: |
+          if [ -f training_demos/results/cpu_training_*/final_report.md ]; then
+            echo "## Training Summary" >> $GITHUB_STEP_SUMMARY
+            cat training_demos/results/cpu_training_*/final_report.md >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Upload training results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-training-results-${{ github.event.inputs.epochs || '25' }}ep
+          path: |
+            training_demos/results/cpu_training_*/
+            !**/*.pt
+          retention-days: 30
+      
+      - name: Upload model checkpoints
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-training-checkpoints-${{ github.event.inputs.epochs || '25' }}ep
+          path: |
+            training_demos/results/cpu_training_*/checkpoints/
+            training_demos/results/cpu_training_*/best_model.pt
+          retention-days: 30
+      
+      - name: Upload metrics and plots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-training-metrics-${{ github.event.inputs.epochs || '25' }}ep
+          path: |
+            training_demos/results/cpu_training_*/metrics.json
+            training_demos/results/cpu_training_*/learning_curves.png
+            training_demos/results/cpu_training_*/final_report.md
+          retention-days: 30
+      
+      - name: Performance report
+        if: always()
+        run: |
+          echo "## CPU Training Performance" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runner OS**: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **CPU Cores**: $(nproc)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Memory**: $(free -h | awk '/^Mem:/ {print $2}')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Epochs**: ${{ github.event.inputs.epochs || '25' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Batch Size**: ${{ github.event.inputs.batch_size || '16' }}" >> $GITHUB_STEP_SUMMARY
