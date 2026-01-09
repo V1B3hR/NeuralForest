@@ -107,9 +107,13 @@ jobs:
       - name: Training summary
         if: always()
         run: |
-          if [ -f training_demos/results/cpu_training_*/final_report.md ]; then
+          EPOCHS=${{ github.event.inputs.epochs || '25' }}
+          REPORT_PATH="training_demos/results/cpu_training_${EPOCHS}ep/final_report.md"
+          if [ -f "$REPORT_PATH" ]; then
             echo "## Training Summary" >> $GITHUB_STEP_SUMMARY
-            cat training_demos/results/cpu_training_*/final_report.md >> $GITHUB_STEP_SUMMARY
+            cat "$REPORT_PATH" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Training report not found at $REPORT_PATH" >> $GITHUB_STEP_SUMMARY
           fi
       
       - name: Upload training results
@@ -118,7 +122,7 @@ jobs:
         with:
           name: cpu-training-results-${{ github.event.inputs.epochs || '25' }}ep
           path: |
-            training_demos/results/cpu_training_*/
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '25' }}ep/
             !**/*.pt
           retention-days: 30
       
@@ -128,8 +132,8 @@ jobs:
         with:
           name: cpu-training-checkpoints-${{ github.event.inputs.epochs || '25' }}ep
           path: |
-            training_demos/results/cpu_training_*/checkpoints/
-            training_demos/results/cpu_training_*/best_model.pt
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '25' }}ep/checkpoints/
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '25' }}ep/best_model.pt
           retention-days: 30
       
       - name: Upload metrics and plots
@@ -138,9 +142,9 @@ jobs:
         with:
           name: cpu-training-metrics-${{ github.event.inputs.epochs || '25' }}ep
           path: |
-            training_demos/results/cpu_training_*/metrics.json
-            training_demos/results/cpu_training_*/learning_curves.png
-            training_demos/results/cpu_training_*/final_report.md
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '25' }}ep/metrics.json
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '25' }}ep/learning_curves.png
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '25' }}ep/final_report.md
           retention-days: 30
       
       - name: Performance report
