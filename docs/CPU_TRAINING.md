@@ -62,11 +62,11 @@ python training_demos/cifar10_hybrid_training.py --epochs 25 --batch_size 16 --d
    ```bash
    export OMP_NUM_THREADS=8
    export MKL_NUM_THREADS=8
-   python training_demos/cifar10_hybrid_training.py --epochs 100 --batch_size 16
+   python training_demos/cifar10_hybrid_training.py --epochs 100 --batch_size 16 --device cpu
    ```
 3. **Background execution** (overnight):
    ```bash
-   nohup python training_demos/cifar10_hybrid_training.py --epochs 100 --batch_size 16 &
+   nohup python training_demos/cifar10_hybrid_training.py --epochs 100 --batch_size 16 --device cpu &
    ```
 
 ## Results
