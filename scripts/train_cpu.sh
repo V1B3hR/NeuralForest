@@ -16,7 +16,7 @@ echo "  Epochs: $EPOCHS"
 echo "  Batch Size: $BATCH_SIZE"
 echo "  Output: $OUTPUT_DIR"
 echo ""
-# Estimate: ~2.5 minutes per epoch on standard CPU (150 seconds)
+# Estimate: ~2.5 minutes per epoch on standard CPU
 MINUTES=$((EPOCHS * 5 / 2))
 HOURS=$((MINUTES / 60))
 REMAINING_MINS=$((MINUTES % 60))

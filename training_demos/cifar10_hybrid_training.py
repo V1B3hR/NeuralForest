@@ -449,7 +449,7 @@ def main():
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             device = torch.device(args.device)
-    except RuntimeError as e:
+    except (RuntimeError, ValueError) as e:
         print(f"Error: Invalid device '{args.device}'. Error: {e}")
         print("Valid options: 'auto', 'cpu', 'cuda'")
         return
