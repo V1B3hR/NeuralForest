@@ -27,7 +27,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from NeuralForest import ForestEcosystem, DEVICE, TreeArch
+from NeuralForest import ForestEcosystem, TreeArch
 from ecosystem_simulation import EcosystemSimulator
 from training_demos.layer_wise_optimizer import LayerWiseConfig, LayerWiseOptimizer
 from training_demos.enhanced_task_head import EnhancedTaskHead

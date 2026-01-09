@@ -79,8 +79,11 @@ jobs:
       
       - name: Set CPU optimization flags
         run: |
-          echo "OMP_NUM_THREADS=${{ runner.os == 'Linux' && '4' || '2' }}" >> $GITHUB_ENV
-          echo "MKL_NUM_THREADS=${{ runner.os == 'Linux' && '4' || '2' }}" >> $GITHUB_ENV
+          # Use all available CPU threads for better performance
+          THREAD_COUNT=$(nproc)
+          echo "OMP_NUM_THREADS=$THREAD_COUNT" >> $GITHUB_ENV
+          echo "MKL_NUM_THREADS=$THREAD_COUNT" >> $GITHUB_ENV
+          echo "Using $THREAD_COUNT CPU threads for training"
       
       - name: Run CPU Training
         id: training
