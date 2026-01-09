@@ -444,10 +444,15 @@ def main():
     args = parse_args()
     
     # Set device based on argument
-    if args.device == 'auto':
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device(args.device)
+    try:
+        if args.device == 'auto':
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            device = torch.device(args.device)
+    except RuntimeError as e:
+        print(f"Error: Invalid device '{args.device}'. Error: {e}")
+        print("Valid options: 'auto', 'cpu', 'cuda'")
+        return
     
     # Set random seed
     set_seed(args.seed)

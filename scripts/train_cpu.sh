@@ -16,7 +16,8 @@ echo "  Epochs: $EPOCHS"
 echo "  Batch Size: $BATCH_SIZE"
 echo "  Output: $OUTPUT_DIR"
 echo ""
-echo "Estimated time: $((EPOCHS * 2 + EPOCHS / 2)) minutes"
+# Estimate: ~2.5 minutes per epoch on standard CPU
+echo "Estimated time: $((EPOCHS * 5 / 2)) minutes (~$((EPOCHS * 5 / 120)) hours)"
 echo ""
 
 # Set CPU optimizations
