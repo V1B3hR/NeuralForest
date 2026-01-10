@@ -27,7 +27,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from NeuralForest import ForestEcosystem, DEVICE, TreeArch
+from NeuralForest import ForestEcosystem, TreeArch
 from ecosystem_simulation import EcosystemSimulator
 from training_demos.layer_wise_optimizer import LayerWiseConfig, LayerWiseOptimizer
 from training_demos.enhanced_task_head import EnhancedTaskHead
@@ -113,6 +113,11 @@ def parse_args():
     # Random seed
     parser.add_argument('--seed', type=int, default=42,
                        help='Random seed for reproducibility')
+    
+    # Device
+    parser.add_argument('--device', type=str, default='auto',
+                       choices=['auto', 'cpu', 'cuda'],
+                       help='Device to use for training (auto, cpu, or cuda)')
     
     # Output
     parser.add_argument('--output_dir', type=str, 
@@ -333,7 +338,7 @@ def get_architecture_diversity(forest):
     return len(architectures)
 
 
-def generate_final_report(args, metrics_tracker, results_dir, training_time):
+def generate_final_report(args, metrics_tracker, results_dir, training_time, device):
     """Generate comprehensive final report."""
     report_path = results_dir / "final_report.md"
     
@@ -370,7 +375,7 @@ def generate_final_report(args, metrics_tracker, results_dir, training_time):
         f.write("## Training Summary\n\n")
         f.write(f"- **Training Time**: {training_time:.2f} minutes\n")
         f.write(f"- **Total Epochs**: {args.epochs}\n")
-        f.write(f"- **Device**: {DEVICE}\n\n")
+        f.write(f"- **Device**: {device}\n\n")
         
         f.write("## Final Results\n\n")
         f.write(f"- **Train Accuracy**: {final_train_acc:.2f}%\n")
@@ -438,13 +443,24 @@ def main():
     """Main training loop."""
     args = parse_args()
     
+    # Set device based on argument
+    try:
+        if args.device == 'auto':
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            device = torch.device(args.device)
+    except (RuntimeError, ValueError) as e:
+        print(f"Error: Invalid device '{args.device}'. Error: {e}")
+        print("Valid options: 'auto', 'cpu', 'cuda'")
+        return
+    
     # Set random seed
     set_seed(args.seed)
     
     print("=" * 70)
     print("CIFAR-10 Hybrid Training with Layer-Wise Optimizer")
     print("=" * 70)
-    print(f"\nDevice: {DEVICE}")
+    print(f"\nDevice: {device}")
     print(f"\n🚀 Starting training with {args.epochs} epochs")
     print(f"\nConfiguration:")
     for arg, value in vars(args).items():
@@ -478,7 +494,7 @@ def main():
         hidden_dim=args.hidden_dim,
         max_trees=args.max_trees,
         enable_graveyard=True
-    ).to(DEVICE)
+    ).to(device)
     
     # Plant initial trees with unique seeds
     initial_tree_count = forest.num_trees()
@@ -501,7 +517,7 @@ def main():
         dropout=args.head_dropout,
         activation=args.head_activation,
         use_skip=args.use_skip
-    ).to(DEVICE)
+    ).to(device)
     print("✅ Enhanced task head ready")
     print(f"   Architecture: {args.hidden_dim} → {args.head_hidden_dim} → {args.num_classes}")
     print(f"   Activation: {args.head_activation}")
@@ -539,7 +555,7 @@ def main():
         learning_rate=args.base_lr,
         enable_replay=True,
         enable_anchors=True,
-        device=DEVICE
+        device=device
     )
     print("✅ Ecosystem ready")
     
@@ -573,11 +589,11 @@ def main():
         
         # Train epoch
         train_loss, train_acc = train_epoch(
-            forest, task_head, simulator, train_loader, optimizer, epoch, DEVICE
+            forest, task_head, simulator, train_loader, optimizer, epoch, device
         )
         
         # Evaluate
-        test_loss, test_acc = evaluate_model(forest, task_head, test_loader, DEVICE)
+        test_loss, test_acc = evaluate_model(forest, task_head, test_loader, device)
         
         # Update tree ages (after epoch completes)
         opt_factory.update_tree_ages(forest)
@@ -667,7 +683,7 @@ def main():
     
     # Generate final report
     print("\n📝 Generating final report...")
-    generate_final_report(args, metrics_tracker, results_dir, training_time)
+    generate_final_report(args, metrics_tracker, results_dir, training_time, device)
     
     print("\n" + "=" * 70)
     print("✅ All done! Results saved to:", results_dir)
