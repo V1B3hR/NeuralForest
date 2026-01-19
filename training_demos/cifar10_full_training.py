@@ -357,7 +357,7 @@ def main():
         
         # Prune and plant trees periodically
         if epoch % args.prune_every == 0 and epoch > 10:
-            num_pruned = simulator.apply_selection()
+            num_pruned = simulator.select()
             if num_pruned > 0:
                 print(f"  🌳 Pruned {num_pruned} weak trees")
         
