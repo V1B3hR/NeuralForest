@@ -241,7 +241,7 @@ def train_stage(stage_config, forest, task_head, simulator, optimizer,
         
         # Prune and plant trees
         if epoch % CONFIG['prune_every'] == 0 and epoch > 5:
-            num_pruned = simulator.apply_selection()
+            num_pruned = simulator.select()
             if num_pruned > 0:
                 print(f"  🌳 Pruned {num_pruned} trees")
         
