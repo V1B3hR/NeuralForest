@@ -646,7 +646,7 @@ def main():
         # Prune trees
         if epoch % args.prune_every == 0 and epoch > 0:
             print(f"\n  🌿 Pruning trees (epoch {epoch})...")
-            simulator.apply_selection()
+            simulator.select()
             print(f"     Trees after pruning: {forest.num_trees()}")
         
         # Plant new trees
