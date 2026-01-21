@@ -817,6 +817,22 @@ class EcosystemSimulator:
         
         return 0
     
+    def select(self, min_keep: int = 2) -> int:
+        """
+        Backwards-compatible alias for prune_weak_trees().
+        
+        Prunes weak trees based on fitness and selection threshold.
+        This method exists for compatibility with training demos that use
+        the select() API.
+        
+        Args:
+            min_keep: Minimum trees to keep (default: 2)
+            
+        Returns:
+            Number of trees pruned
+        """
+        return self.prune_weak_trees(min_keep=min_keep)
+    
     def plant_trees(self, count: int = 1, arch=None) -> int:
         """
         Plant new trees in the forest.

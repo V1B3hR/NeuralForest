@@ -300,6 +300,45 @@ class TestEcosystemSimulator:
         assert final_count < initial_count
         assert final_count >= 4
     
+    def test_select_method(self):
+        """Test select() method (backwards-compatible alias)."""
+        forest = ForestEcosystem(input_dim=2, hidden_dim=32, max_trees=10).to(DEVICE)
+        
+        # Plant many trees
+        for _ in range(7):
+            forest._plant_tree()
+        
+        # Set different fitness levels
+        for i, tree in enumerate(forest.trees):
+            tree.fitness = float(i) * 1.5
+        
+        initial_count = forest.num_trees()
+        
+        sim = EcosystemSimulator(forest, selection_threshold=0.3)
+        
+        # Test that select() method exists and works
+        pruned = sim.select(min_keep=4)
+        
+        final_count = forest.num_trees()
+        
+        assert pruned > 0
+        assert final_count < initial_count
+        assert final_count >= 4
+        
+        # Verify select() returns same result as prune_weak_trees()
+        # Reset forest
+        forest2 = ForestEcosystem(input_dim=2, hidden_dim=32, max_trees=10).to(DEVICE)
+        for _ in range(7):
+            forest2._plant_tree()
+        for i, tree in enumerate(forest2.trees):
+            tree.fitness = float(i) * 1.5
+        
+        sim2 = EcosystemSimulator(forest2, selection_threshold=0.3)
+        pruned2 = sim2.prune_weak_trees(min_keep=4)
+        
+        # Both methods should prune the same number of trees
+        assert pruned == pruned2
+    
     def test_plant_trees(self):
         """Test planting new trees."""
         forest = ForestEcosystem(input_dim=2, hidden_dim=32, max_trees=10).to(DEVICE)
@@ -422,6 +461,8 @@ def run_all_tests():
     print("✓ Selection pressure")
     test_sim.test_prune_weak_trees()
     print("✓ Prune weak trees")
+    test_sim.test_select_method()
+    print("✓ Select method (backwards-compatible)")
     test_sim.test_plant_trees()
     print("✓ Plant trees")
     test_sim.test_plant_trees_respects_max()
