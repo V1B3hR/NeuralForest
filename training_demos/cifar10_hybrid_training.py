@@ -33,25 +33,10 @@ from training_demos.layer_wise_optimizer import LayerWiseConfig, LayerWiseOptimi
 from training_demos.enhanced_task_head import EnhancedTaskHead
 from training_demos.utils import DatasetLoader, MetricsTracker
 
-
 # Constants
 TREE_SEED_OFFSET = 1000  # Offset for generating unique tree seeds
 ECOSYSTEM_SIMULATION_FREQ = 10  # Frequency of ecosystem simulation (every N batches)
 
-class EcosystemSimulator:
-    ...
-    def select(self, min_keep: int = 2) -> int:
-        """
-        Backwards-compatible alias for older training scripts.
-
-        Historically training demos called `simulator.select()` to perform
-        selection pressure / pruning. The current API exposes this as
-        `prune_weak_trees(min_keep=...)`.
-
-        Returns:
-            Number of pruned trees.
-        """
-        return self.prune_weak_trees(min_keep=min_keep)
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -147,7 +132,9 @@ def set_seed(seed):
     np.random.seed(seed)
     import random
     random.seed(seed)
-
+    # (Optional) For CUDA deterministic
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
 
 def plant_tree_with_unique_seed(forest, base_seed, tree_id, arch=None):
     """
@@ -180,11 +167,9 @@ def plant_tree_with_unique_seed(forest, base_seed, tree_id, arch=None):
     if torch.cuda.is_available():
         torch.cuda.set_rng_state(cuda_state)
 
-
 def flatten_images(images):
     """Flatten image batches from [B, C, H, W] to [B, D]."""
     return images.view(images.size(0), -1)
-
 
 def extract_forest_features(forest, x, top_k=3):
     """
@@ -218,7 +203,6 @@ def extract_forest_features(forest, x, top_k=3):
     
     return weighted_features
 
-
 def topk_softmax(scores, k):
     """Helper function for top-k softmax routing."""
     B, T = scores.shape
@@ -228,7 +212,6 @@ def topk_softmax(scores, k):
     weights = torch.zeros_like(scores)
     weights.scatter_(1, topi, w)
     return weights
-
 
 def train_epoch(forest, task_head, simulator, train_loader, optimizer, epoch, device):
     """Train for one epoch."""
@@ -280,7 +263,6 @@ def train_epoch(forest, task_head, simulator, train_loader, optimizer, epoch, de
     
     return avg_loss, accuracy
 
-
 def evaluate_model(forest, task_head, data_loader, device):
     """Evaluate model on dataset."""
     forest.eval()
@@ -318,7 +300,6 @@ def evaluate_model(forest, task_head, data_loader, device):
     
     return avg_loss, accuracy
 
-
 def save_checkpoint(forest, task_head, optimizer, opt_factory, epoch, path, metrics=None):
     """Save training checkpoint."""
     checkpoint = {
@@ -334,7 +315,6 @@ def save_checkpoint(forest, task_head, optimizer, opt_factory, epoch, path, metr
     torch.save(checkpoint, path)
     print(f"✅ Checkpoint saved to {path}")
 
-
 def get_architecture_diversity(forest):
     """Calculate number of unique architectures."""
     architectures = set()
@@ -349,7 +329,6 @@ def get_architecture_diversity(forest):
             )
             architectures.add(arch_tuple)
     return len(architectures)
-
 
 def generate_final_report(args, metrics_tracker, results_dir, training_time, device):
     """Generate comprehensive final report."""
@@ -371,7 +350,7 @@ def generate_final_report(args, metrics_tracker, results_dir, training_time, dev
     if history['avg_fitness']:
         initial_fitness = history['avg_fitness'][0]
         final_fitness = history['avg_fitness'][-1]
-        fitness_improvement = ((final_fitness - initial_fitness) / initial_fitness) * 100
+        fitness_improvement = ((final_fitness - initial_fitness) / initial_fitness) * 100 if initial_fitness != 0 else 0
     else:
         fitness_improvement = 0
     
@@ -426,7 +405,7 @@ def generate_final_report(args, metrics_tracker, results_dir, training_time, dev
         # Stretch criteria
         f.write("### Stretch (Ideal)\n")
         f.write(f"- Test accuracy ≥ 88%: {'✅' if final_test_acc >= 88 else '⚠️'} ({final_test_acc:.2f}%)\n")
-        f.write(f"- Architecture diversity: 6-7 types: {'✅' if 6 <= history['architecture_diversity'][-1] <= 7 else '⚠️'} ({history['architecture_diversity'][-1] if history['architecture_diversity'] else 0})\n")
+        f.write(f"- Architecture diversity: 6-7 types: {'✅' if history['architecture_diversity'] and 6 <= history['architecture_diversity'][-1] <= 7 else '⚠️'} ({history['architecture_diversity'][-1] if history['architecture_diversity'] else 0})\n")
         f.write(f"- Generalization gap < 5%: {'✅' if (final_train_acc - final_test_acc) < 5 else '⚠️'} ({final_train_acc - final_test_acc:.2f}%)\n\n")
         
         f.write("## Key Features Demonstrated\n\n")
@@ -450,7 +429,6 @@ def generate_final_report(args, metrics_tracker, results_dir, training_time, dev
         f.write("- `final_report.md` - This report\n")
     
     print(f"✅ Final report saved to {report_path}")
-
 
 def main():
     """Main training loop."""
@@ -570,6 +548,10 @@ def main():
         enable_anchors=True,
         device=device
     )
+    # Backward compatibility: ensure simulator has select() method if not present
+    if not hasattr(simulator, "select"):
+        simulator.select = lambda min_keep=2: simulator.prune_weak_trees(min_keep=min_keep)
+
     print("✅ Ecosystem ready")
     
     # Create metrics tracker
