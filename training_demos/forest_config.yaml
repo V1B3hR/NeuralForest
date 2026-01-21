@@ -1,0 +1,39 @@
+# NeuralForest - Konfiguracja Liberalna (zgodna z filozofią Nethical)
+batch_size: 64
+epochs: 100
+base_lr: 0.01
+min_lr: 0.0001
+optimizer_type: adam
+hidden_dim: 512
+head_hidden_dim: 64
+head_dropout: 0.22
+head_activation: gelu
+input_dim: 3072
+output_dir: training_demos/results/liberal_forest
+initial_trees: 12
+max_trees: 30
+min_trees: 6
+plant_every: 5
+prune_every: 15
+diversity_bonus: true
+mutation_scope: adaptive
+pollination_on_low_diversity: true
+tree_family_enabled: true
+age_bonus_enabled: true
+consensus_prediction: true
+audit_enabled: true
+fail_safe_enabled: true
+reward_system:
+  sun_bonus: true
+  rain_bonus: true
+  mineral_bonus: true
+  soil_enrichment: true
+fitness_aware: true
+competition_fairness: 0.3
+selection_threshold: 0.25
+half_life: 60.0
+warmup_epochs: 5
+use_skip: false
+weight_decay: 0.0001
+seed: 42
+num_classes: 10
