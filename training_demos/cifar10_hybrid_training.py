@@ -38,7 +38,20 @@ from training_demos.utils import DatasetLoader, MetricsTracker
 TREE_SEED_OFFSET = 1000  # Offset for generating unique tree seeds
 ECOSYSTEM_SIMULATION_FREQ = 10  # Frequency of ecosystem simulation (every N batches)
 
+class EcosystemSimulator:
+    ...
+    def select(self, min_keep: int = 2) -> int:
+        """
+        Backwards-compatible alias for older training scripts.
 
+        Historically training demos called `simulator.select()` to perform
+        selection pressure / pruning. The current API exposes this as
+        `prune_weak_trees(min_keep=...)`.
+
+        Returns:
+            Number of pruned trees.
+        """
+        return self.prune_weak_trees(min_keep=min_keep)
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
