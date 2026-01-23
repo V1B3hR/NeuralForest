@@ -6,23 +6,13 @@ on:
       epochs:
         description: 'Number of training epochs'
         required: true
-        default: '200'     # <-- domyślnie 200
-        type: choice
-        options:
-          - '25'
-          - '50'
-          - '100'
-          - '200'
-          - '300'
+        default: '200'
+        type: string
       batch_size:
         description: 'Batch size (smaller = faster on CPU)'
         required: true
         default: '16'
-        type: choice
-        options:
-          - '16'
-          - '32'
-          - '64'
+        type: string
       checkpoint_every:
         description: 'Save checkpoint every N epochs'
         required: true
@@ -31,15 +21,13 @@ on:
       max_trees:
         description: 'Maximum number of trees'
         required: true
-        default: '70'       # <-- domyślnie max_trees = 70
+        default: '70'
         type: string
   push:
     branches: [main]
     paths:
       - 'training_demos/**'
       - '.github/workflows/cpu_training.yml'
-  schedule:
-    - cron: '0 2 * * 0'  # Weekly on Sunday 2 AM UTC
 
 env:
   PYTHON_VERSION: '3.10'
@@ -74,46 +62,17 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pyyaml
-      - name: Verify installation
-        run: |
-          python -c "import torch; print(f'PyTorch version: {torch.__version__}')"
-          python -c "import torchvision; print(f'torchvision version: {torchvision.__version__}')"
-          python -c "import numpy; print(f'NumPy version: {numpy.__version__}')"
-          python -c "import torch; print(f'CPU threads: {torch.get_num_threads()}')"
-          python -c "import sys; print(f'Python version: {sys.version}')"
-      - name: Set CPU optimization flags
-        run: |
-          THREAD_COUNT=$(nproc)
-          echo "OMP_NUM_THREADS=$THREAD_COUNT" >> $GITHUB_ENV
-          echo "MKL_NUM_THREADS=$THREAD_COUNT" >> $GITHUB_ENV
-          echo "Using $THREAD_COUNT CPU threads for training"
-      - name: Debug environment
-        run: |
-          echo "=== Python sys.path ==="
-          python -c "import sys; print('\n'.join(sys.path))"
-          echo ""
-          echo "=== Current directory ==="
-          pwd
-          echo ""
-          echo "=== Repository structure ==="
-          ls -la
-          echo ""
-          echo "=== training_demos directory ==="
-          ls -la training_demos/
-          echo ""
-          echo "=== Python files in training_demos ==="
-          ls -la training_demos/*.py
       - name: Run CPU Training
         id: training
         run: |
-          EPOCHS=${{ github.event.inputs.epochs || '200' }}
-          BATCH_SIZE=${{ github.event.inputs.batch_size || '16' }}
-          CHECKPOINT_EVERY=${{ github.event.inputs.checkpoint_every || '20' }}
-          MAX_TREES=${{ github.event.inputs.max_trees || '70' }}
-          
-          echo "Starting training: $EPOCHS epochs, batch size $BATCH_SIZE, max_trees $MAX_TREES"
-          echo "::group::Training Output"
-          
+          EPOCHS=${{ github.event.inputs.epochs }}
+          BATCH_SIZE=${{ github.event.inputs.batch_size }}
+          CHECKPOINT_EVERY=${{ github.event.inputs.checkpoint_every }}
+          MAX_TREES=${{ github.event.inputs.max_trees }}
+
+          echo "Starting training: $EPOCHS epochs, batch size $BATCH_SIZE, max_trees=$MAX_TREES"
+          mkdir -p training_demos/results/cpu_training_${EPOCHS}ep/checkpoints
+
           python training_demos/cifar10_full_training.py \
             --epochs $EPOCHS \
             --batch_size $BATCH_SIZE \
@@ -121,54 +80,22 @@ jobs:
             --max_trees $MAX_TREES \
             --device cpu \
             --output_dir training_demos/results/cpu_training_${EPOCHS}ep
-          
-          echo "::endgroup::"
       - name: Training summary
         if: always()
         run: |
-          EPOCHS=${{ github.event.inputs.epochs || '200' }}
+          EPOCHS=${{ github.event.inputs.epochs }}
           REPORT_PATH="training_demos/results/cpu_training_${EPOCHS}ep/final_report.md"
           if [ -f "$REPORT_PATH" ]; then
             echo "## Training Summary" >> $GITHUB_STEP_SUMMARY
             cat "$REPORT_PATH" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Training report not found at $REPORT_PATH" >> $GITHUB_STEP_SUMMARY
-      - name: Upload training results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cpu-training-results-${{ github.event.inputs.epochs || '200' }}ep
-          path: |
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/
-            !**/*.pt
-          retention-days: 30
-      - name: Upload model checkpoints
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cpu-training-checkpoints-${{ github.event.inputs.epochs || '200' }}ep
-          path: |
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/checkpoints/
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/best_model.pt
-          retention-days: 30
       - name: Upload metrics and plots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cpu-training-metrics-${{ github.event.inputs.epochs || '200' }}ep
+          name: cpu-training-metrics-${{ github.event.inputs.epochs }}ep
           path: |
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/metrics.json
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/learning_curves.png
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/final_report.md
-          retention-days: 30
-      - name: Performance report
-        if: always()
-        run: |
-          echo "## CPU Training Performance" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Runner OS**: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **CPU Cores**: $(nproc)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Memory**: $(free -h | awk '/^Mem:/ {print $2}')" >> $GITHUB_STEP_SUMMARY
-          echo "- **Epochs**: ${{ github.event.inputs.epochs || '200' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Batch Size**: ${{ github.event.inputs.batch_size || '16' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Max trees**: ${{ github.event.inputs.max_trees || '70' }}" >> $GITHUB_STEP_SUMMARY
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs }}ep/metrics.json
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs }}ep/learning_curves.png
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs }}ep/final_report.md
