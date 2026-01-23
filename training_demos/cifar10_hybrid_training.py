@@ -8,10 +8,7 @@ import torch
 import json
 from pathlib import Path
 
-# ==============================
-# --- Trivial Data Simulation ---
-# (symuluje partiami "CIFAR-10" loader na potrzeby przykładu)
-# ==============================
+# --- Dummy data loader: symulacja CIFAR-10 (batchy na epokę = 50) ---
 class DummyLoader:
     def __init__(self, batch_size, batches=50):
         self.batch_size = batch_size
@@ -19,7 +16,6 @@ class DummyLoader:
 
     def __iter__(self):
         for _ in range(self.batches):
-            # 32x32x3 obrazki + etykiety
             data = torch.randn(self.batch_size, 3, 32, 32)
             targets = torch.randint(0, 10, size=(self.batch_size,))
             yield data, targets
@@ -27,9 +23,7 @@ class DummyLoader:
     def __len__(self):
         return self.batches
 
-# ===================
-# --- METRICS ---
-# ===================
+# --- METRICS TRACKER ---
 class MetricsTracker:
     def __init__(self):
         self.history = {}
@@ -58,9 +52,7 @@ class MetricsTracker:
         plt.savefig(path)
         plt.close()
 
-# ==============================
-# --- Ewolucyjny las -----------
-# ==============================
+# --- Ewolucyjne funkcje/Nagrody ---
 def reward_tree(tree, metrics, config, forest):
     bonus = 0
     # Bazowy bonus za accuracy
@@ -73,19 +65,19 @@ def reward_tree(tree, metrics, config, forest):
         bonus += config.get('reward_system', {}).get('mineral_bonus', True) * 0.2
     if getattr(tree, 'recycled', False):
         bonus += config.get('reward_system', {}).get('soil_enrichment', True) * 0.2
-    # Nowy BONUS: za unikalny typ aktywacji
+    # Wzmocniony BONUS za unikalną architekturę:
     head_acts = [t.head_activation for t in forest.trees]
     if head_acts.count(tree.head_activation) == 1:
-        bonus += config.get('reward_system', {}).get('diversity_bonus', 1.0) * 0.5
+        bonus += config.get('reward_system', {}).get('diversity_bonus', 1.0) * 1.0
     tree.fitness += bonus
 
 def adaptive_mutation(tree, forest, config):
     diversity_metric = forest.compute_diversity()
     # Mocniej zachęcamy do mutacji:
     if config.get('mutation_scope', 'adaptive') == 'adaptive':
-        mutation_prob = max(0.3, 1.0 - 0.6 * diversity_metric)
+        mutation_prob = max(0.6, 1.0 - 0.5 * diversity_metric)
     else:
-        mutation_prob = 0.5
+        mutation_prob = 0.8
 
     changed = False
     # Mutacja rozmiaru warstwy
@@ -96,9 +88,9 @@ def adaptive_mutation(tree, forest, config):
     if random.random() < mutation_prob * 0.7:
         tree.head_dropout = min(0.5, max(0.1, tree.head_dropout + random.uniform(-0.05, 0.05)))
         changed = True
-    # Mutacja aktywacji – SZANSA 0.9×
-    if random.random() < mutation_prob * 0.9:
-        tree.head_activation = random.choice(['relu', 'gelu', 'leaky_relu'])
+    # Mutacja aktywacji – SZANSA 0.95×
+    if random.random() < mutation_prob * 0.95:
+        tree.head_activation = random.choice(['relu', 'gelu', 'leaky_relu', 'tanh', 'sigmoid'])
         changed = True
     if changed:
         tree.did_mutate = True
@@ -131,7 +123,7 @@ class ForestEcosystem:
                 t.head_dropout = parent.head_dropout + random.uniform(-0.03, 0.03)
                 t.head_activation = parent.head_activation
                 self.trees.append(t)
-        # Zawsze próbuj stworzyć nowe drzewo o zmutowanej architekturze:
+        # Zawsze próbuj stworzyć nowe drzewo z mutacją architektury:
         if len(self.trees) < config['max_trees']:
             t = Tree(config)
             adaptive_mutation(t, self, config)
@@ -169,16 +161,12 @@ class ForestEcosystem:
             'config': self.config
         }
 
-# =============
-# --- MAIN ---
-# =============
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, default=100)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--epochs', type=int, default=150)
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--initial_trees', type=int, default=10)
-    parser.add_argument('--max_trees', type=int, default=20)
+    parser.add_argument('--max_trees', type=int, default=30)
     parser.add_argument('--min_trees', type=int, default=6)
     parser.add_argument('--output_dir', type=str, default='results')
     parser.add_argument('--checkpoint_every', type=int, default=20)
@@ -186,8 +174,8 @@ def main():
     parser.add_argument('--hidden_dim', type=int, default=512)
     parser.add_argument('--head_dropout', type=float, default=0.2)
     parser.add_argument('--head_activation', type=str, default='relu')
-    parser.add_argument('--plant_every', type=int, default=2)
-    parser.add_argument('--prune_every', type=int, default=2)
+    parser.add_argument('--plant_every', type=int, default=1)
+    parser.add_argument('--prune_every', type=int, default=1)
     args = parser.parse_args()
 
     config = vars(args)
@@ -207,11 +195,9 @@ def main():
 
     for epoch in range(args.epochs):
         forest.epoch = epoch + 1
-        # Ewolucja i mock trening:
         for t in forest.trees:
             t.fitness *= 1 + random.uniform(-0.03, 0.05)
             reward_tree(t, {'test_accuracy': random.uniform(0.3,0.9)}, config, forest)
-        # Mutacje/przycinanie/rozrost co plant_every/prune_every
         if (epoch+1) % args.plant_every == 0 or (epoch+1) % args.prune_every == 0:
             forest.grow_forest()
             print(f"[Epoch {epoch+1}] Trees: {len(forest.trees)}, Diversity: {forest.compute_diversity()}")
