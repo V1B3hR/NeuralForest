@@ -1,15 +1,17 @@
 import sys
 import os
-top = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if top not in sys.path:
-    sys.path.insert(0, top)
-
 import argparse
 import yaml
 from pathlib import Path
 import random
 import numpy as np
 import torch
+
+# Ensure repo root is in sys.path
+top = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if top not in sys.path:
+    sys.path.insert(0, top)
+
 from training_demos.utils import DatasetLoader, MetricsTracker
 
 # === LIBERAL EVOLUTIONARY UTILS ===
@@ -27,7 +29,6 @@ def reward_tree(tree, metrics, config):
     if getattr(tree, 'recycled', False):
         bonus += config.get('reward_system', {}).get('soil_enrichment', True) * 0.2
     tree.fitness += bonus
-
 
 def adaptive_mutation(tree, forest, config):
     """Apply mutations depending on forest diversity."""
@@ -104,6 +105,25 @@ class ForestEcosystem:
         activations = {t.head_activation for t in self.trees}
         return len(activations)
 
+    def get_state_dict(self):
+        # Serializacja całego ekosystemu – dla checkpointów
+        return {
+            'epoch': self.epoch,
+            'trees': [
+                {
+                    'hidden_dim': t.hidden_dim,
+                    'head_dropout': t.head_dropout,
+                    'head_activation': t.head_activation,
+                    'fitness': t.fitness,
+                    'age': t.age,
+                    'best_test_accuracy': t.best_test_accuracy,
+                    'did_mutate': t.did_mutate,
+                    'recycled': t.recycled
+                } for t in self.trees
+            ],
+            'config': self.config
+        }
+
 
 # === MAIN TRAINING LOGIC ===
 
@@ -126,8 +146,12 @@ def load_config(args):
     config.setdefault('hidden_dim', 512)
     config.setdefault('head_dropout', 0.2)
     config.setdefault('head_activation', 'relu')
+    config.setdefault('plant_every', 5)
+    config.setdefault('prune_every', 5)
+    # DODATKOWE: checkpoint_every, device
+    config.setdefault('checkpoint_every', 20)
+    config.setdefault('device', 'cpu')
     return config
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -138,6 +162,8 @@ def main():
     parser.add_argument('--max_trees', type=int, default=None)
     parser.add_argument('--min_trees', type=int, default=None)
     parser.add_argument('--output_dir', type=str, default='training_demos/results/liberal_forest')
+    parser.add_argument('--checkpoint_every', type=int, default=None, help='Co ile epok zapisywać checkpoint')
+    parser.add_argument('--device', type=str, default=None, help='Urządzenie docelowe (cpu, cuda)')
     args = parser.parse_args()
 
     config = load_config(args)
@@ -151,6 +177,7 @@ def main():
         random.seed(config['seed'])
         np.random.seed(config['seed'])
         torch.manual_seed(config['seed'])
+
     # Data loaders (adjust as needed)
     train_loader, test_loader = DatasetLoader.get_cifar10(batch_size=config['batch_size'])
 
@@ -161,7 +188,16 @@ def main():
     forest = ForestEcosystem(config)
     print(f"Initial trees: {len(forest.trees)}")
 
+    # Obsługa urządzenia (pokaż do loga, tu nie wykorzystuje GPU, ale zgodność z workflow)
+    device = config.get('device', 'cpu')
+    print(f"Training device target: {device}")
+
+    os.makedirs(config['output_dir'], exist_ok=True)
+    checkpoints_dir = os.path.join(config['output_dir'], 'checkpoints')
+    os.makedirs(checkpoints_dir, exist_ok=True)
+
     for epoch in range(config['epochs']):
+        forest.epoch = epoch + 1
         # Train: (mock demo logic -- replace with real train step)
         for t in forest.trees:
             t.fitness *= 1 + random.uniform(-0.03, 0.05)
@@ -182,10 +218,25 @@ def main():
             'test_accuracy': 0.5 + random.uniform(-0.1, 0.09),
         })
 
+        # === ZAPIS CHECKPOINT CO N EPOCH ===
+        if 'checkpoint_every' in config and config['checkpoint_every']:
+            if ((epoch + 1) % config['checkpoint_every'] == 0) or (epoch + 1 == config['epochs']):
+                checkpoint_path = os.path.join(checkpoints_dir, f'forest_checkpoint_epoch{epoch+1}.pt')
+                # Przykładowy checkpoint: serializacja ekosystemu (np. do późniejszego przywracania)
+                torch.save(forest.get_state_dict(), checkpoint_path)
+                print(f"[Checkpoint] Zapisano stan ekosystemu: {checkpoint_path}")
+
     print("\n--- Training Complete! ---")
     tracker.save(Path(config['output_dir']) / "metrics.json")
     tracker.plot(Path(config['output_dir']) / "learning_curves.png")
-
+    # Raport końcowy
+    report_path = os.path.join(config['output_dir'], "final_report.md")
+    with open(report_path, "w") as f:
+        f.write(f"# Training Report\n\n")
+        f.write(f"- Epochs: {config['epochs']}\n")
+        f.write(f"- Batch size: {config['batch_size']}\n")
+        f.write(f"- Final number of trees: {len(forest.trees)}\n")
+        f.write(f"- Max diversity: {max(tracker.data['architecture_diversity']) if tracker.data['architecture_diversity'] else None}\n")
 
 if __name__ == "__main__":
     main()
