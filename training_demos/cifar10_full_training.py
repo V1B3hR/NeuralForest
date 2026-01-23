@@ -141,7 +141,20 @@ def main():
         simulator.select = lambda min_keep=2: simulator.prune_weak_trees(min_keep=min_keep)
 
     metrics_tracker = MetricsTracker()
+    # Zapisz metryki do metrics.json
+    metrics_tracker.save(results_dir / "metrics.json")
 
+    # Zapisz wykres
+    metrics_tracker.plot(results_dir / "learning_curves.png")
+
+    # Stwórz prosty raport tekstowy (możesz rozbudować)
+    with open(results_dir / "final_report.md", "w") as f:
+        f.write(f"# Training Report\n\n")
+        f.write(f"- Epochs: {args.epochs}\n")
+        f.write(f"- Batch size: {args.batch_size}\n")
+        f.write(f"- Final number of trees: {forest.num_trees()}\n")
+        diversity_history = metrics_tracker.data.get("diversity", []) or metrics_tracker.data.get("architecture_diversity", [])
+        f.write(f"- Max diversity: {max(diversity_history) if diversity_history else 'N/A'}\n")
     # ... (cała twoja logika treningu, ewaluacji, zapisu checkpointów itd. bez zmian)
 
 if __name__ == "__main__":
