@@ -40,7 +40,7 @@ env:
 
 jobs:
   train-cpu-full:
-    name: CPU Training (CIFAR-10 Hybrid)
+    name: cifar10_full_training
     runs-on: ubuntu-latest
     timeout-minutes: 360  # 6 hours (GitHub limit)
     
@@ -115,7 +115,7 @@ jobs:
           echo "Starting training: $EPOCHS epochs, batch size $BATCH_SIZE"
           echo "::group::Training Output"
           
-          python training_demos/cifar10_hybrid_training.py \
+          python training_demos/cifar10_full_training.py \
             --epochs $EPOCHS \
             --batch_size $BATCH_SIZE \
             --checkpoint_every $CHECKPOINT_EVERY \
