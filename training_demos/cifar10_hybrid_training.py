@@ -1,3 +1,9 @@
+import sys
+import os
+top = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if top not in sys.path:
+    sys.path.insert(0, top)
+
 import argparse
 import yaml
 from pathlib import Path

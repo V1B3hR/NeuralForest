@@ -88,6 +88,23 @@ jobs:
           echo "MKL_NUM_THREADS=$THREAD_COUNT" >> $GITHUB_ENV
           echo "Using $THREAD_COUNT CPU threads for training"
       
+      - name: Debug environment
+        run: |
+          echo "=== Python sys.path ==="
+          python -c "import sys; print('\n'.join(sys.path))"
+          echo ""
+          echo "=== Current directory ==="
+          pwd
+          echo ""
+          echo "=== Repository structure ==="
+          ls -la
+          echo ""
+          echo "=== training_demos directory ==="
+          ls -la training_demos/
+          echo ""
+          echo "=== Verify training_demos package ==="
+          python -c "import sys; sys.path.insert(0, '.'); import training_demos; print('training_demos module location:', training_demos.__file__)"
+      
       - name: Run CPU Training
         id: training
         run: |
