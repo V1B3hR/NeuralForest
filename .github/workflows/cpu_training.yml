@@ -102,8 +102,8 @@ jobs:
           echo "=== training_demos directory ==="
           ls -la training_demos/
           echo ""
-          echo "=== Verify training_demos package ==="
-          python -c "import sys; sys.path.insert(0, '.'); import training_demos; print('training_demos module location:', training_demos.__file__)"
+          echo "=== Python files in training_demos ==="
+          ls -la training_demos/*.py
       
       - name: Run CPU Training
         id: training
