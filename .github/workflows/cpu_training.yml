@@ -21,7 +21,7 @@ on:
       max_trees:
         description: 'Maximum number of trees'
         required: true
-        default: '70'
+        default: '75'
         type: string
   push:
     branches: [main]
@@ -65,10 +65,10 @@ jobs:
       - name: Run CPU Training
         id: training
         run: |
-          EPOCHS=${{ github.event.inputs.epochs }}
-          BATCH_SIZE=${{ github.event.inputs.batch_size }}
-          CHECKPOINT_EVERY=${{ github.event.inputs.checkpoint_every }}
-          MAX_TREES=${{ github.event.inputs.max_trees }}
+          EPOCHS=${{ github.event.inputs.epochs || '200' }}
+          BATCH_SIZE=${{ github.event.inputs.batch_size || '16' }}
+          CHECKPOINT_EVERY=${{ github.event.inputs.checkpoint_every || '20' }}
+          MAX_TREES=${{ github.event.inputs.max_trees || '75' }}
 
           echo "Starting training: $EPOCHS epochs, batch size $BATCH_SIZE, max_trees=$MAX_TREES"
           mkdir -p training_demos/results/cpu_training_${EPOCHS}ep/checkpoints
@@ -83,19 +83,20 @@ jobs:
       - name: Training summary
         if: always()
         run: |
-          EPOCHS=${{ github.event.inputs.epochs }}
+          EPOCHS=${{ github.event.inputs.epochs || '200' }}
           REPORT_PATH="training_demos/results/cpu_training_${EPOCHS}ep/final_report.md"
           if [ -f "$REPORT_PATH" ]; then
             echo "## Training Summary" >> $GITHUB_STEP_SUMMARY
             cat "$REPORT_PATH" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Training report not found at $REPORT_PATH" >> $GITHUB_STEP_SUMMARY
+          fi
       - name: Upload metrics and plots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cpu-training-metrics-${{ github.event.inputs.epochs }}ep
+          name: cpu-training-metrics-${{ github.event.inputs.epochs || '200' }}ep
           path: |
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs }}ep/metrics.json
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs }}ep/learning_curves.png
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs }}ep/final_report.md
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/metrics.json
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/learning_curves.png
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/final_report.md
