@@ -1,4 +1,4 @@
-"""CIFAR-10 Full Training Script with Real Training Loop."""
+"""CIFAR-10 Full Training Script - Using Tree Outputs as Features."""
 
 import sys
 import os
@@ -20,6 +20,8 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--checkpoint_every', type=int, default=20)
     parser.add_argument('--max_trees', type=int, default=75)
+    parser.add_argument('--output_dim_per_tree', type=int, default=1, 
+                        help='Output dimension per tree (1, 3, 5, 10, etc.)')
     parser.add_argument('--output_dir', type=str, default='training_demos/results/cifar10_full')
     parser.add_argument('--device', type=str, default='cpu')
     return parser.parse_args()
@@ -31,16 +33,45 @@ def set_seed(seed=42):
     import random
     random.seed(seed)
 
+def topk_softmax(scores, k):
+    """Top-k softmax for routing."""
+    B, T = scores.shape
+    k = min(k, T)
+    topv, topi = torch.topk(scores, k=k, dim=1)
+    w = torch.softmax(topv, dim=1)
+    weights = torch.zeros_like(scores)
+    weights.scatter_(1, topi, w)
+    return weights
+
+def get_tree_outputs_as_features(forest, x, top_k=3):
+    """
+    Get outputs from all trees as a feature vector.
+    
+    Returns:
+        [B, num_trees] - each tree contributes its output
+    """
+    T = forest.num_trees()
+    
+    # Get outputs from all trees
+    tree_outputs = []
+    for tree in forest.trees:
+        out = tree(x)  # [B, 1]
+        tree_outputs.append(out)
+    
+    # Stack: [B, T, 1] → squeeze → [B, T]
+    features = torch.stack(tree_outputs, dim=1).squeeze(-1)
+    
+    return features
+
 def main():
     args = parse_args()
     
-    # Create output directory FIRST (before any errors)
+    # Create output directory FIRST
     results_dir = Path(args.output_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
     checkpoints_dir = results_dir / "checkpoints"
     checkpoints_dir.mkdir(exist_ok=True)
     
-    # Create error log file
     error_log_path = results_dir / "error.log"
     
     try:
@@ -53,6 +84,7 @@ def main():
         print(f"Epochs: {args.epochs}")
         print(f"Batch size: {args.batch_size}")
         print(f"Max trees: {args.max_trees}")
+        print(f"Output dim per tree: {args.output_dim_per_tree}")
         print(f"Output dir: {args.output_dir}")
         print(f"=" * 70)
         
@@ -60,53 +92,35 @@ def main():
         with open(results_dir / "config.json", 'w') as f:
             json.dump(vars(args), f, indent=2)
         
-        # Import modules with error handling
+        # Import modules
         print("\n📦 Importing modules...")
-        try:
-            from NeuralForest import ForestEcosystem, TreeArch, DEVICE
-            print("✓ NeuralForest imported")
-        except ImportError as e:
-            raise ImportError(f"Failed to import NeuralForest: {e}")
+        from NeuralForest import ForestEcosystem, TreeArch, DEVICE
+        print("✓ NeuralForest imported")
         
-        try:
-            from ecosystem_simulation import EcosystemSimulator
-            print("✓ EcosystemSimulator imported")
-        except ImportError as e:
-            raise ImportError(f"Failed to import EcosystemSimulator: {e}")
+        from ecosystem_simulation import EcosystemSimulator
+        print("✓ EcosystemSimulator imported")
         
-        try:
-            from training_demos.layer_wise_optimizer import LayerWiseConfig, LayerWiseOptimizer
-            print("✓ LayerWiseOptimizer imported")
-        except ImportError as e:
-            raise ImportError(f"Failed to import LayerWiseOptimizer: {e}")
+        from training_demos.layer_wise_optimizer import LayerWiseConfig, LayerWiseOptimizer
+        print("✓ LayerWiseOptimizer imported")
         
-        try:
-            from training_demos.enhanced_task_head import EnhancedTaskHead
-            print("✓ EnhancedTaskHead imported")
-        except ImportError as e:
-            raise ImportError(f"Failed to import EnhancedTaskHead: {e}")
+        from training_demos.enhanced_task_head import EnhancedTaskHead
+        print("✓ EnhancedTaskHead imported")
         
-        try:
-            from training_demos.utils import DatasetLoader, MetricsTracker
-            print("✓ DatasetLoader and MetricsTracker imported")
-        except ImportError as e:
-            raise ImportError(f"Failed to import utils: {e}")
+        from training_demos.utils import DatasetLoader, MetricsTracker
+        print("✓ DatasetLoader and MetricsTracker imported")
         
         # Load dataset
         print("\n📦 Loading CIFAR-10 dataset...")
-        try:
-            train_loader, test_loader = DatasetLoader.get_cifar10(
-                batch_size=args.batch_size, 
-                num_workers=0  # Changed to 0 for CI stability
-            )
-            print(f"✓ Train batches: {len(train_loader)}, Test batches: {len(test_loader)}")
-        except Exception as e:
-            raise RuntimeError(f"Failed to load CIFAR-10 dataset: {e}")
+        train_loader, test_loader = DatasetLoader.get_cifar10(
+            batch_size=args.batch_size, 
+            num_workers=0
+        )
+        print(f"✓ Train batches: {len(train_loader)}, Test batches: {len(test_loader)}")
         
         # Create forest
         print("\n🌱 Creating NeuralForest...")
         forest = ForestEcosystem(
-            input_dim=3072,  # 32x32x3 flattened
+            input_dim=3072,
             hidden_dim=512,
             max_trees=args.max_trees,
             enable_graveyard=True
@@ -117,16 +131,21 @@ def main():
         for i in range(initial_trees - forest.num_trees()):
             forest._plant_tree()
         
-        # Initialize epoch_age for all trees
+        # Initialize epoch_age
         for tree in forest.trees:
             tree.epoch_age = 0
         
-        print(f"✓ Forest created with {forest.num_trees()} trees")
+        current_num_trees = forest.num_trees()
+        print(f"✓ Forest created with {current_num_trees} trees")
+        
+        # Calculate task head input dimension
+        # Each tree outputs 1 value, so input_dim = num_trees
+        task_head_input_dim = current_num_trees * args.output_dim_per_tree
         
         # Create task head
-        print("\n🎯 Creating task head...")
+        print(f"\n🎯 Creating task head (input: {task_head_input_dim} = {current_num_trees} trees × {args.output_dim_per_tree} dims)...")
         task_head = EnhancedTaskHead(
-            input_dim=512,
+            input_dim=task_head_input_dim,
             hidden_dim=64,
             num_classes=10,
             dropout=0.2,
@@ -164,7 +183,7 @@ def main():
         # Metrics tracker
         metrics_tracker = MetricsTracker()
         
-        # Helper function to flatten images
+        # Helper function
         def flatten_images(images):
             return images.view(images.size(0), -1)
         
@@ -175,6 +194,32 @@ def main():
         best_test_acc = 0.0
         
         for epoch in range(1, args.epochs + 1):
+            # Check if num_trees changed, need to recreate task head
+            if forest.num_trees() != current_num_trees:
+                print(f"⚠️  Tree count changed: {current_num_trees} → {forest.num_trees()}")
+                current_num_trees = forest.num_trees()
+                task_head_input_dim = current_num_trees * args.output_dim_per_tree
+                
+                # Create new task head
+                old_task_head = task_head
+                task_head = EnhancedTaskHead(
+                    input_dim=task_head_input_dim,
+                    hidden_dim=64,
+                    num_classes=10,
+                    dropout=0.2,
+                    activation='relu',
+                    use_skip=False
+                ).to(device)
+                
+                # Try to copy weights where possible
+                try:
+                    if hasattr(old_task_head, 'fc2'):
+                        task_head.fc2.load_state_dict(old_task_head.fc2.state_dict())
+                except:
+                    pass
+                
+                print(f"✓ Task head recreated for {current_num_trees} trees")
+            
             # Create optimizer for this epoch
             optimizer = opt_factory.create_optimizer(forest, task_head, epoch)
             
@@ -190,14 +235,14 @@ def main():
                 images = images.to(device)
                 labels = labels.to(device)
                 
-                # Flatten images for forest
+                # Flatten images
                 x_flat = flatten_images(images)
                 
-                # Forward pass through forest
-                forest_out, weights, _ = forest.forward_forest(x_flat, top_k=3)
+                # Get tree outputs as features [B, num_trees]
+                tree_features = get_tree_outputs_as_features(forest, x_flat, top_k=3)
                 
-                # Forward pass through task head
-                logits = task_head(forest_out)
+                # Forward through task head
+                logits = task_head(tree_features)
                 
                 # Calculate loss
                 loss = F.cross_entropy(logits, labels)
@@ -218,7 +263,12 @@ def main():
                 total += labels.size(0)
                 correct += predicted.eq(labels).sum().item()
                 
-                # Store experiences in memory (every 10 batches)
+                # Update tree fitness
+                with torch.no_grad():
+                    for tree in forest.trees:
+                        tree.update_fitness(loss.item())
+                
+                # Store experiences (every 10 batches)
                 if batch_idx % 10 == 0:
                     with torch.no_grad():
                         for i in range(min(len(x_flat), 5)):
@@ -244,17 +294,14 @@ def main():
                     images = images.to(device)
                     labels = labels.to(device)
                     
-                    # Flatten images
                     x_flat = flatten_images(images)
                     
-                    # Forward pass
-                    forest_out, _, _ = forest.forward_forest(x_flat, top_k=3)
-                    logits = task_head(forest_out)
+                    # Get tree features
+                    tree_features = get_tree_outputs_as_features(forest, x_flat, top_k=3)
+                    logits = task_head(tree_features)
                     
-                    # Calculate loss
                     loss = F.cross_entropy(logits, labels)
                     
-                    # Update metrics
                     total_loss += loss.item()
                     _, predicted = logits.max(1)
                     total += labels.size(0)
@@ -263,11 +310,11 @@ def main():
             test_loss = total_loss / len(test_loader)
             test_acc = 100.0 * correct / total
             
-            # Calculate fitness metrics
+            # Fitness metrics
             avg_fitness = sum(t.fitness for t in forest.trees) / len(forest.trees)
             num_trees = forest.num_trees()
             
-            # Count unique architectures
+            # Architecture diversity
             arch_signatures = set()
             for tree in forest.trees:
                 if hasattr(tree, 'arch'):
@@ -303,6 +350,7 @@ def main():
                     'forest': forest.state_dict(),
                     'task_head': task_head.state_dict(),
                     'test_acc': test_acc,
+                    'num_trees': num_trees,
                 }, checkpoints_dir / "best_model.pt")
             
             # Save checkpoint
@@ -313,31 +361,28 @@ def main():
                     'task_head': task_head.state_dict(),
                     'optimizer': optimizer.state_dict(),
                     'test_acc': test_acc,
+                    'num_trees': num_trees,
                 }, checkpoints_dir / f"model_epoch{epoch}.pt")
                 print(f"💾 Checkpoint saved at epoch {epoch}")
             
             # Tree management
-            if epoch % 10 == 0:
-                # Prune weak trees
-                if forest.num_trees() > 4:
-                    weak_trees = [t.id for t in forest.trees if t.age > 30 and t.fitness < 2.0]
-                    if weak_trees:
-                        forest._prune_trees(weak_trees[:2], min_keep=3)
-                        print(f"🪓 Pruned {len(weak_trees[:2])} weak trees")
+            if epoch % 10 == 0 and forest.num_trees() > 4:
+                weak_trees = [t.id for t in forest.trees if t.age > 30 and t.fitness < 2.0]
+                if weak_trees:
+                    forest._prune_trees(weak_trees[:2], min_keep=3)
+                    print(f"🪓 Pruned {len(weak_trees[:2])} weak trees")
             
-            if epoch % 15 == 0:
-                # Plant new tree
-                if forest.num_trees() < args.max_trees:
-                    arch = TreeArch(
-                        num_layers=int(np.random.randint(2, 5)),
-                        hidden_dim=512,
-                        activation=str(np.random.choice(['relu', 'gelu', 'tanh'])),
-                        dropout=float(np.random.uniform(0.0, 0.2)),
-                        normalization=str(np.random.choice(['none', 'layer'])),
-                        residual=bool(np.random.choice([True, False]))
-                    )
-                    forest._plant_tree(arch)
-                    print(f"🌱 Planted new tree (total: {forest.num_trees()})")
+            if epoch % 15 == 0 and forest.num_trees() < args.max_trees:
+                arch = TreeArch(
+                    num_layers=int(np.random.randint(2, 5)),
+                    hidden_dim=512,
+                    activation=str(np.random.choice(['relu', 'gelu', 'tanh'])),
+                    dropout=float(np.random.uniform(0.0, 0.2)),
+                    normalization=str(np.random.choice(['none', 'layer'])),
+                    residual=bool(np.random.choice([True, False]))
+                )
+                forest._plant_tree(arch)
+                print(f"🌱 Planted new tree (total: {forest.num_trees()})")
             
             # Update tree ages
             opt_factory.update_tree_ages(forest)
@@ -346,27 +391,32 @@ def main():
         print("✅ Training completed!")
         print("=" * 70)
         
-        # Save final metrics
+        # Save results
         print("\n💾 Saving results...")
         metrics_tracker.save(results_dir / "metrics.json")
         metrics_tracker.plot(results_dir / "learning_curves.png")
         
-        # Generate final report
+        # Generate report
         with open(results_dir / "final_report.md", "w") as f:
             f.write("# NeuralForest CIFAR-10 Training Report\n\n")
             f.write("## Configuration\n\n")
             f.write(f"- **Epochs**: {args.epochs}\n")
             f.write(f"- **Batch size**: {args.batch_size}\n")
             f.write(f"- **Max trees**: {args.max_trees}\n")
+            f.write(f"- **Output dim per tree**: {args.output_dim_per_tree}\n")
             f.write(f"- **Device**: {args.device}\n\n")
             f.write("## Final Results\n\n")
             f.write(f"- **Best test accuracy**: {best_test_acc:.2f}%\n")
             f.write(f"- **Final train accuracy**: {train_acc:.2f}%\n")
             f.write(f"- **Final test accuracy**: {test_acc:.2f}%\n")
             f.write(f"- **Final number of trees**: {num_trees}\n")
+            f.write(f"- **Task head input dimension**: {num_trees} trees × {args.output_dim_per_tree} = {num_trees * args.output_dim_per_tree}\n")
             f.write(f"- **Architecture diversity**: {arch_diversity} unique types\n")
             f.write(f"- **Memory size**: {memory_size} samples\n")
             f.write(f"- **Average fitness**: {avg_fitness:.2f}\n\n")
+            f.write("## Architecture Philosophy\n\n")
+            f.write(f"Each of the {num_trees} trees acts as an expert, producing a {args.output_dim_per_tree}-dimensional opinion.\n")
+            f.write(f"The task head learns to aggregate these {num_trees * args.output_dim_per_tree} expert opinions into final predictions.\n\n")
             f.write("## Learning Curves\n\n")
             f.write("![Learning Curves](learning_curves.png)\n\n")
             f.write("## Tree Evolution\n\n")
@@ -377,23 +427,21 @@ def main():
         
         print(f"✓ Results saved to: {results_dir}")
         print(f"✓ Best test accuracy: {best_test_acc:.2f}%")
+        print(f"✓ Feature dimension: {num_trees} trees × {args.output_dim_per_tree} = {num_trees * args.output_dim_per_tree}")
         print("\n🎉 All done!")
         
     except Exception as e:
-        # Log error
         error_msg = f"ERROR: Training failed!\n\n{traceback.format_exc()}"
         print(error_msg)
         
         with open(error_log_path, 'w') as f:
             f.write(error_msg)
         
-        # Create minimal report so workflow doesn't fail completely
         with open(results_dir / "final_report.md", "w") as f:
             f.write("# Training Failed\n\n")
             f.write(f"## Error\n\n```\n{str(e)}\n```\n\n")
             f.write(f"See error.log for full traceback.\n")
         
-        # Re-raise to fail the workflow
         raise
 
 if __name__ == "__main__":
