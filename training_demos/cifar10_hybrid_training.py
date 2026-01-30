@@ -1,14 +1,14 @@
+"""Hybrid Training Demo – NeuralForest Evolutionary Simulation"""
+
 import sys
 import os
 import argparse
 import random
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 import json
 from pathlib import Path
 
-# --- Dummy data loader: simulates CIFAR-10 batches per epoch
 class DummyLoader:
     def __init__(self, batch_size, batches=50):
         self.batch_size = batch_size
@@ -23,7 +23,6 @@ class DummyLoader:
     def __len__(self):
         return self.batches
 
-# --- METRICS TRACKER ---
 class MetricsTracker:
     def __init__(self):
         self.history = {}
@@ -41,47 +40,46 @@ class MetricsTracker:
             json.dump(self.history, f, indent=2)
 
     def plot(self, path):
-        keys = list(self.history.keys())
-        fig, axes = plt.subplots(2, 2, figsize=(11, 7))
-        panels = [k for k in keys if k != 'epoch']
-        for idx, k in enumerate(panels[:4]):
-            axes[idx//2, idx%2].plot(self.history['epoch'], self.history[k], label=k)
-            axes[idx//2, idx%2].set_title(k)
-            axes[idx//2, idx%2].legend()
-        fig.tight_layout()
-        plt.savefig(path)
-        plt.close()
+        try:
+            import matplotlib.pyplot as plt
+            keys = list(self.history.keys())
+            fig, axes = plt.subplots(2, 2, figsize=(11, 7))
+            panels = [k for k in keys if k != 'epoch']
+            for idx, k in enumerate(panels[:4]):
+                axes[idx//2, idx%2].plot(self.history['epoch'], self.history[k], label=k)
+                axes[idx//2, idx%2].set_title(k)
+                axes[idx//2, idx%2].legend()
+            fig.tight_layout()
+            plt.savefig(path)
+            plt.close()
+        except Exception:
+            pass
 
-# --- Ewolucyjne funkcje/Nagrody ---
 def reward_tree(tree, metrics, config, forest):
     bonus = 0
     if metrics.get('test_accuracy', 0) > tree.best_test_accuracy:
-        bonus += config.get('reward_system', {}).get('sun_bonus', True) * 1
+        bonus += config['reward_system'].get('sun_bonus', True) * 1
         tree.best_test_accuracy = metrics['test_accuracy']
     if getattr(tree, 'did_mutate', False):
-        bonus += config.get('reward_system', {}).get('rain_bonus', True) * 0.5
+        bonus += config['reward_system'].get('rain_bonus', True) * 0.5
     if getattr(tree, 'age', 0) > 0 and getattr(tree, 'age', 0) % 10 == 0:
-        bonus += config.get('reward_system', {}).get('mineral_bonus', True) * 0.2
+        bonus += config['reward_system'].get('mineral_bonus', True) * 0.2
     if getattr(tree, 'recycled', False):
-        bonus += config.get('reward_system', {}).get('soil_enrichment', True) * 0.2
-    # ** Slightly increased diversity bonus **
+        bonus += config['reward_system'].get('soil_enrichment', True) * 0.2
     head_acts = [t.head_activation for t in forest.trees]
     if head_acts.count(tree.head_activation) == 1:
-        bonus += config.get('reward_system', {}).get('diversity_bonus', 1.3) * 1.3
+        bonus += config['reward_system'].get('diversity_bonus', 1.4) * 1.4
     tree.fitness += bonus
 
 def adaptive_mutation(tree, forest, config):
     diversity_metric = forest.compute_diversity()
-    if config.get('mutation_scope', 'adaptive') == 'adaptive':
-        mutation_prob = max(0.6, 1.0 - 0.5 * diversity_metric)
-    else:
-        mutation_prob = 0.8
+    mutation_prob = max(0.7, 1.0 - 0.5 * diversity_metric)
     changed = False
     if random.random() < mutation_prob:
-        tree.hidden_dim = int(tree.hidden_dim * random.uniform(0.8, 1.2))
+        tree.hidden_dim = int(tree.hidden_dim * random.uniform(0.8, 1.3))
         changed = True
     if random.random() < mutation_prob * 0.7:
-        tree.head_dropout = min(0.5, max(0.1, tree.head_dropout + random.uniform(-0.05, 0.05)))
+        tree.head_dropout = min(0.5, max(0.1, tree.head_dropout + random.uniform(-0.07, 0.07)))
         changed = True
     if random.random() < mutation_prob * 0.95:
         tree.head_activation = random.choice(['relu', 'gelu', 'leaky_relu', 'tanh', 'sigmoid'])
@@ -108,23 +106,22 @@ class ForestEcosystem:
 
     def grow_forest(self):
         config = self.config
-        # Pollination if diversity drops
-        if config.get('pollination_on_low_diversity', False) and self.compute_diversity() < 2:
+        if config.get('pollination_on_low_diversity', True) and self.compute_diversity() < 2:
             parent = random.choice(self.trees)
             for _ in range(2):
                 t = Tree(config)
                 t.hidden_dim = parent.hidden_dim
-                t.head_dropout = parent.head_dropout + random.uniform(-0.03, 0.03)
+                t.head_dropout = parent.head_dropout + random.uniform(-0.07, 0.07)
                 t.head_activation = parent.head_activation
                 self.trees.append(t)
         if len(self.trees) < config['max_trees']:
             t = Tree(config)
             adaptive_mutation(t, self, config)
             self.trees.append(t)
-        if len(self.trees) > config['min_trees']:
+        if len(self.trees) > config['min_trees'] and self.compute_diversity() > 2:
             sorted_trees = sorted(self.trees, key=lambda x: x.fitness)
-            for i in range(int(0.2*len(self.trees))):
-                if sorted_trees[i].age > 8:
+            for i in range(int(0.15*len(self.trees))):
+                if sorted_trees[i].age > 6:
                     self.trees.remove(sorted_trees[i])
         for t in self.trees:
             t.age += 1
@@ -156,7 +153,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--initial_trees', type=int, default=10)
+    parser.add_argument('--initial_trees', type=int, default=12)
     parser.add_argument('--max_trees', type=int, default=50)
     parser.add_argument('--min_trees', type=int, default=6)
     parser.add_argument('--output_dir', type=str, default='results')
@@ -170,10 +167,8 @@ def main():
     args = parser.parse_args()
 
     config = vars(args)
-    # Dodaj nagrodę za diversity jeśli nie podano z CLI
-    if 'reward_system' not in config:
-        config['reward_system'] = {}
-    config['reward_system']['diversity_bonus'] = config['reward_system'].get('diversity_bonus', 1.3)
+    config.setdefault('reward_system', {})
+    config['reward_system']['diversity_bonus'] = config['reward_system'].get('diversity_bonus', 1.4)
 
     print("\n--- Using Configuration ---")
     for k,v in config.items():
@@ -183,7 +178,6 @@ def main():
     os.makedirs(config['output_dir'], exist_ok=True)
     checkpoints_dir = os.path.join(config['output_dir'], 'checkpoints')
     os.makedirs(checkpoints_dir, exist_ok=True)
-
     train_loader = DummyLoader(batch_size=args.batch_size, batches=50)
     tracker = MetricsTracker()
     forest = ForestEcosystem(config)
@@ -192,12 +186,11 @@ def main():
     for epoch in range(args.epochs):
         forest.epoch = epoch + 1
         for t in forest.trees:
-            t.fitness *= 1 + random.uniform(-0.03, 0.05)
+            t.fitness *= 1 + random.uniform(-0.03, 0.06)
             reward_tree(t, {'test_accuracy': random.uniform(0.3,0.9)}, config, forest)
         if (epoch+1) % args.plant_every == 0 or (epoch+1) % args.prune_every == 0:
             forest.grow_forest()
             print(f"[Epoch {epoch+1}] Trees: {len(forest.trees)}, Diversity: {forest.compute_diversity()}")
-
         avg_fitness = np.mean([t.fitness for t in forest.trees])
         diversity = forest.compute_diversity()
         mock_train_loss = 1.0 - min(epoch / (args.epochs or 1), 1.0) + random.uniform(0, 0.1)
@@ -210,7 +203,6 @@ def main():
             'train_accuracy': 0.75 + random.uniform(-0.05, 0.08),
             'test_accuracy': 0.5 + random.uniform(-0.1, 0.09),
         })
-
         if args.checkpoint_every and ((epoch + 1) % args.checkpoint_every == 0 or (epoch + 1 == args.epochs)):
             checkpoint_path = os.path.join(checkpoints_dir, f'forest_checkpoint_epoch{epoch+1}.pt')
             torch.save(forest.get_state_dict(), checkpoint_path)
