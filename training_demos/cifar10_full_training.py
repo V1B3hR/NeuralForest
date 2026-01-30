@@ -1,4 +1,4 @@
-"""CIFAR-10 Full Training Script - Optimized NeuralForest."""
+"""CIFAR-10 Full Training Script - Using Tree Outputs as Features (Optimized, Single-Cell)."""
 
 import sys
 import os
@@ -16,12 +16,12 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser(description='CIFAR-10 Full Training Script')
-    parser.add_argument('--epochs', type=int, default=200)
-    parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--checkpoint_every', type=int, default=20)
-    parser.add_argument('--max_trees', type=int, default=75)
+    parser.add_argument('--epochs', type=int, default=250)
+    parser.add_argument('--batch_size', type=int, default=18)
+    parser.add_argument('--checkpoint_every', type=int, default=25)
+    parser.add_argument('--max_trees', type=int, default=90)
     parser.add_argument('--output_dim_per_tree', type=int, default=3,
-                        help='Output dimension per tree (1, 3, 5, 10, etc.)')
+                        help='Output dimension per tree (1 by default, for this repo)')
     parser.add_argument('--output_dir', type=str, default='training_demos/results/cifar10_full')
     parser.add_argument('--device', type=str, default='cpu')
     return parser.parse_args()
@@ -42,16 +42,20 @@ def topk_softmax(scores, k):
     weights.scatter_(1, topi, w)
     return weights
 
-def get_tree_outputs_as_features(forest, x, output_dim=1, top_k=3):
+def get_tree_outputs_as_features(forest, x, top_k=3):
+    """
+    Get outputs from all trees as a feature vector.
+    Each tree should return [B, output_dim], we concatenate along feature dim.
+    """
     tree_outputs = []
-    T = forest.num_trees()
     for tree in forest.trees:
-        out = tree(x)  # [B, output_dim]
+        out = tree(x)  # [B, output_dim] or [B, 1] (often [B,1])
         if out.ndim == 1:
-            out = out.unsqueeze(-1)
+            out = out.unsqueeze(1)
         tree_outputs.append(out)
-    features = torch.cat(tree_outputs, dim=1)  # [B, T * output_dim]
-    return features
+    # Cat along feature dim => [B, sum(output_dim per tree)]
+    features = torch.cat(tree_outputs, dim=1)
+    return features  # [B, num_trees * output_dim_per_tree] (if output_dim_per_tree>1)
 
 def min_arch_diversity(forest):
     arch_signatures = set()
@@ -105,8 +109,7 @@ def main():
             enable_graveyard=True
         ).to(device)
 
-        initial_trees = min(10, args.max_trees)
-        # Diverse initial trees!
+        initial_trees = min(14, args.max_trees)
         for i in range(initial_trees - forest.num_trees()):
             arch = TreeArch(
                 num_layers=np.random.randint(2, 6),
@@ -114,8 +117,7 @@ def main():
                 activation=str(np.random.choice(['relu', 'gelu', 'tanh'])),
                 dropout=float(np.random.uniform(0.0, 0.3)),
                 normalization=str(np.random.choice(['none', 'layer'])),
-                residual=bool(np.random.choice([True, False])),
-                output_dim=args.output_dim_per_tree,
+                residual=bool(np.random.choice([True, False]))
             )
             forest._plant_tree(arch)
         for tree in forest.trees:
@@ -150,7 +152,6 @@ def main():
         )
         opt_factory = LayerWiseOptimizer(opt_config)
 
-        # Adaptive ecosystem parameters
         simulator = EcosystemSimulator(
             forest,
             competition_fairness=0.33,
@@ -165,12 +166,11 @@ def main():
         def flatten_images(images):
             return images.view(images.size(0), -1)
 
-        print("\n🚀 Starting training...")
+        print("\n���� Starting training...")
         print("=" * 70)
         best_test_acc = 0.0
 
         for epoch in range(1, args.epochs + 1):
-            # Rebuild task head if tree count changes
             if forest.num_trees() != current_num_trees:
                 print(f"⚠️  Tree count changed: {current_num_trees} → {forest.num_trees()}")
                 current_num_trees = forest.num_trees()
@@ -201,7 +201,7 @@ def main():
                 images = images.to(device)
                 labels = labels.to(device)
                 x_flat = flatten_images(images)
-                tree_features = get_tree_outputs_as_features(forest, x_flat, output_dim=args.output_dim_per_tree, top_k=3)
+                tree_features = get_tree_outputs_as_features(forest, x_flat, top_k=3)
                 logits = task_head(tree_features)
                 loss = F.cross_entropy(logits, labels)
                 optimizer.zero_grad()
@@ -212,10 +212,9 @@ def main():
                 _, predicted = logits.max(1)
                 total += labels.size(0)
                 correct += predicted.eq(labels).sum().item()
-                # Adaptive fitness: reward best performing trees on sample
                 with torch.no_grad():
                     for tree in forest.trees:
-                        tree.update_fitness(loss.item() * np.random.uniform(0.9, 1.1))
+                        tree.update_fitness(loss.item() * np.random.uniform(0.9, 1.1)) # Slightly noisy
                 if batch_idx % 10 == 0:
                     with torch.no_grad():
                         for i in range(min(len(x_flat), 5)):
@@ -226,7 +225,6 @@ def main():
             train_loss = total_loss / len(train_loader)
             train_acc = 100.0 * correct / total
 
-            # Evaluation
             forest.eval()
             task_head.eval()
             total_loss, correct, total = 0.0, 0, 0
@@ -235,7 +233,7 @@ def main():
                     images = images.to(device)
                     labels = labels.to(device)
                     x_flat = flatten_images(images)
-                    tree_features = get_tree_outputs_as_features(forest, x_flat, output_dim=args.output_dim_per_tree, top_k=3)
+                    tree_features = get_tree_outputs_as_features(forest, x_flat, top_k=3)
                     logits = task_head(tree_features)
                     loss = F.cross_entropy(logits, labels)
                     total_loss += loss.item()
@@ -264,7 +262,6 @@ def main():
                   f"Test: {test_acc:5.2f}% loss={test_loss:.4f} | "
                   f"Trees: {num_trees:2d} | Fit: {avg_fitness:.2f} | Arch.div: {arch_diversity}")
 
-            # Save best model
             if test_acc > best_test_acc:
                 best_test_acc = test_acc
                 torch.save({
@@ -275,7 +272,6 @@ def main():
                     'num_trees': num_trees,
                 }, checkpoints_dir / "best_model.pt")
 
-            # Save checkpoint
             if epoch % args.checkpoint_every == 0 or epoch == args.epochs:
                 torch.save({
                     'epoch': epoch,
@@ -287,13 +283,11 @@ def main():
                 }, checkpoints_dir / f"model_epoch{epoch}.pt")
                 print(f"💾 Checkpoint saved at epoch {epoch}")
 
-            # Pruning (only if diversity >= 2)
             if epoch % 10 == 0 and forest.num_trees() > 4:
                 weak_trees = [t.id for t in forest.trees if t.age > 30 and t.fitness < 2.0]
                 if weak_trees and arch_diversity > 2:
                     forest._prune_trees(weak_trees[:2], min_keep=3)
                     print(f"🪓 Pruned {len(weak_trees[:2])} weak trees (arch.div: {arch_diversity})")
-            # Plant if diversity drops or at interval
             if (epoch % 15 == 0 and forest.num_trees() < args.max_trees) or arch_diversity <= 2:
                 arch = TreeArch(
                     num_layers=int(np.random.randint(2, 5)),
@@ -301,8 +295,7 @@ def main():
                     activation=str(np.random.choice(['relu', 'gelu', 'tanh'])),
                     dropout=float(np.random.uniform(0.0, 0.2)),
                     normalization=str(np.random.choice(['none', 'layer'])),
-                    residual=bool(np.random.choice([True, False])),
-                    output_dim=args.output_dim_per_tree
+                    residual=bool(np.random.choice([True, False]))
                 )
                 forest._plant_tree(arch)
                 print(f"🌱 Planted new tree (total: {forest.num_trees()}, arch.div: {min_arch_diversity(forest)})")
