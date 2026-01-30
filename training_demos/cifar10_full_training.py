@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument('--checkpoint_every', type=int, default=25)
     parser.add_argument('--max_trees', type=int, default=90)
     parser.add_argument('--output_dim_per_tree', type=int, default=3,
-                        help='Output dimension per tree (1 by default, for this repo)')
+                        help='Output dimension per tree (default per repo: 3)')
     parser.add_argument('--output_dir', type=str, default='training_demos/results/cifar10_full')
     parser.add_argument('--device', type=str, default='cpu')
     return parser.parse_args()
@@ -33,29 +33,30 @@ def set_seed(seed=42):
     import random
     random.seed(seed)
 
-def topk_softmax(scores, k):
-    B, T = scores.shape
-    k = min(k, T)
-    topv, topi = torch.topk(scores, k=k, dim=1)
-    w = torch.softmax(topv, dim=1)
-    weights = torch.zeros_like(scores)
-    weights.scatter_(1, topi, w)
-    return weights
-
-def get_tree_outputs_as_features(forest, x, top_k=3):
+def get_tree_outputs_as_features(forest, x, output_dim_per_tree):
     """
     Get outputs from all trees as a feature vector.
-    Each tree should return [B, output_dim], we concatenate along feature dim.
+    Each tree should return [B, output_dim_per_tree], concatenate along feature dim.
+    If tree returns [B, 1], we tile it to [B, output_dim_per_tree]
     """
     tree_outputs = []
     for tree in forest.trees:
-        out = tree(x)  # [B, output_dim] or [B, 1] (often [B,1])
+        out = tree(x)
         if out.ndim == 1:
             out = out.unsqueeze(1)
+        # If output shape is [B,1] and we expect output_dim_per_tree>1, tile dummy
+        if out.shape[1] == 1 and output_dim_per_tree > 1:
+            out = out.repeat(1, output_dim_per_tree)
+        # If output_dim is less than needed (rare) pad zeros
+        if out.shape[1] < output_dim_per_tree:
+            pad = torch.zeros(out.shape[0], output_dim_per_tree-out.shape[1], device=out.device, dtype=out.dtype)
+            out = torch.cat([out, pad], dim=1)
+        # If output_dim is more, truncate
+        if out.shape[1] > output_dim_per_tree:
+            out = out[:, :output_dim_per_tree]
         tree_outputs.append(out)
-    # Cat along feature dim => [B, sum(output_dim per tree)]
     features = torch.cat(tree_outputs, dim=1)
-    return features  # [B, num_trees * output_dim_per_tree] (if output_dim_per_tree>1)
+    return features  # [B, num_trees * output_dim_per_tree]
 
 def min_arch_diversity(forest):
     arch_signatures = set()
@@ -124,7 +125,6 @@ def main():
             tree.epoch_age = 0
 
         current_num_trees = forest.num_trees()
-        print(f"✓ Forest created with {current_num_trees} trees")
         task_head_input_dim = current_num_trees * args.output_dim_per_tree
 
         print(f"\n🎯 Creating task head (input: {task_head_input_dim})...")
@@ -166,7 +166,7 @@ def main():
         def flatten_images(images):
             return images.view(images.size(0), -1)
 
-        print("\n���� Starting training...")
+        print("\n🚀 Starting training...")
         print("=" * 70)
         best_test_acc = 0.0
 
@@ -201,7 +201,7 @@ def main():
                 images = images.to(device)
                 labels = labels.to(device)
                 x_flat = flatten_images(images)
-                tree_features = get_tree_outputs_as_features(forest, x_flat, top_k=3)
+                tree_features = get_tree_outputs_as_features(forest, x_flat, args.output_dim_per_tree)
                 logits = task_head(tree_features)
                 loss = F.cross_entropy(logits, labels)
                 optimizer.zero_grad()
@@ -233,7 +233,7 @@ def main():
                     images = images.to(device)
                     labels = labels.to(device)
                     x_flat = flatten_images(images)
-                    tree_features = get_tree_outputs_as_features(forest, x_flat, top_k=3)
+                    tree_features = get_tree_outputs_as_features(forest, x_flat, args.output_dim_per_tree)
                     logits = task_head(tree_features)
                     loss = F.cross_entropy(logits, labels)
                     total_loss += loss.item()
