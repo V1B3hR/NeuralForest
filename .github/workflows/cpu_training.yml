@@ -1,4 +1,4 @@
-name: CPU Training - NeuralForest
+name: CPU Training - NeuralForest Optimized
 
 on:
   workflow_dispatch:
@@ -6,22 +6,27 @@ on:
       epochs:
         description: 'Number of training epochs'
         required: true
-        default: '200'
+        default: '250'
         type: string
       batch_size:
         description: 'Batch size (smaller = faster on CPU)'
         required: true
-        default: '16'
+        default: '18'
         type: string
       checkpoint_every:
         description: 'Save checkpoint every N epochs'
         required: true
-        default: '20'
+        default: '25'
         type: string
       max_trees:
         description: 'Maximum number of trees'
         required: true
-        default: '75'
+        default: '90'
+        type: string
+      output_dim_per_tree:
+        description: 'Output dimension per tree'
+        required: false
+        default: '3'
         type: string
   push:
     branches: [main]
@@ -35,9 +40,9 @@ env:
 
 jobs:
   train-cpu-full:
-    name: CPU Training (CIFAR-10 Full)
+    name: CPU Training (CIFAR-10 Full, Optimized)
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 400
 
     steps:
       - name: Checkout code
@@ -65,12 +70,13 @@ jobs:
       - name: Run CPU Training
         id: training
         run: |
-          EPOCHS=${{ github.event.inputs.epochs || '200' }}
-          BATCH_SIZE=${{ github.event.inputs.batch_size || '16' }}
-          CHECKPOINT_EVERY=${{ github.event.inputs.checkpoint_every || '20' }}
-          MAX_TREES=${{ github.event.inputs.max_trees || '75' }}
+          EPOCHS=${{ github.event.inputs.epochs || '250' }}
+          BATCH_SIZE=${{ github.event.inputs.batch_size || '18' }}
+          CHECKPOINT_EVERY=${{ github.event.inputs.checkpoint_every || '25' }}
+          MAX_TREES=${{ github.event.inputs.max_trees || '90' }}
+          OUTPUT_DIM_PER_TREE=${{ github.event.inputs.output_dim_per_tree || '3' }}
 
-          echo "Starting training: $EPOCHS epochs, batch size $BATCH_SIZE, max_trees=$MAX_TREES"
+          echo "Starting training: $EPOCHS epochs, batch size $BATCH_SIZE, max_trees=$MAX_TREES, output_dim_per_tree=$OUTPUT_DIM_PER_TREE"
           mkdir -p training_demos/results/cpu_training_${EPOCHS}ep/checkpoints
 
           python training_demos/cifar10_full_training.py \
@@ -79,11 +85,12 @@ jobs:
             --checkpoint_every $CHECKPOINT_EVERY \
             --max_trees $MAX_TREES \
             --device cpu \
+            --output_dim_per_tree $OUTPUT_DIM_PER_TREE \
             --output_dir training_demos/results/cpu_training_${EPOCHS}ep
       - name: Training summary
         if: always()
         run: |
-          EPOCHS=${{ github.event.inputs.epochs || '200' }}
+          EPOCHS=${{ github.event.inputs.epochs || '250' }}
           REPORT_PATH="training_demos/results/cpu_training_${EPOCHS}ep/final_report.md"
           if [ -f "$REPORT_PATH" ]; then
             echo "## Training Summary" >> $GITHUB_STEP_SUMMARY
@@ -95,8 +102,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cpu-training-metrics-${{ github.event.inputs.epochs || '200' }}ep
+          name: cpu-training-metrics-${{ github.event.inputs.epochs || '250' }}ep
           path: |
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/metrics.json
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/learning_curves.png
-            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '200' }}ep/final_report.md
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '250' }}ep/metrics.json
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '250' }}ep/learning_curves.png
+            training_demos/results/cpu_training_${{ github.event.inputs.epochs || '250' }}ep/final_report.md
