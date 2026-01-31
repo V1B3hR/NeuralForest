@@ -1,12 +1,12 @@
 import matplotlib
-matplotlib.use('Agg')  # must be before importing pyplot in a headless/CI env
+matplotlib.use('Agg')
 
 import sys
 import os
 import argparse
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -92,12 +92,12 @@ def write_dummy_png(path):
 def list_result_files(output_dir, stage=""):
     try:
         out_path = Path(output_dir)
-        print(f"[DEBUG] {stage} Output files in {out_path.resolve()}:")
+        print(f"[V7-DEBUG] {stage} Output files in {out_path.resolve()}:")
         for root, dirs, files in os.walk(out_path):
             for name in files:
                 print("  -", os.path.join(root, name))
     except Exception as e:
-        print(f"[DEBUG] Error listing files: {e}")
+        print(f"[V7-DEBUG] Error listing files: {e}")
 
 def main():
     args = parse_args()
@@ -113,7 +113,7 @@ def main():
     try:
         set_seed(42)
         device = torch.device(args.device)
-        print(f"\n==== NeuralForest CIFAR-10 Training ====")
+        print(f"\n==== NeuralForest CIFAR-10 Training V7 ====")
         print(f"Started: {time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Device: {device}  Epochs: {args.epochs}  Batch size: {args.batch_size}")
         print(f"Max trees: {args.max_trees}, Output dim per tree: {args.output_dim_per_tree}")
@@ -203,6 +203,7 @@ def main():
         best_test_acc = 0.0
 
         for epoch in range(1, args.epochs + 1):
+            print(f"\n[V7-TRACE] >>> EPOCH {epoch} START ({time.strftime('%H:%M:%S')})")
             if forest.num_trees() != current_num_trees:
                 print(f"⚠️  Tree count changed: {current_num_trees} → {forest.num_trees()}")
                 current_num_trees = forest.num_trees()
@@ -229,7 +230,9 @@ def main():
             task_head.train()
             total_loss, correct, total = 0.0, 0, 0
 
+            # TRAIN
             for batch_idx, (images, labels) in enumerate(train_loader):
+                print(f"[V7-TRACE] E{epoch} TRAIN batch {batch_idx+1}/{len(train_loader)} SHAPE images {images.shape} labels {labels.shape} ({time.strftime('%H:%M:%S')})")
                 images = images.to(device)
                 labels = labels.to(device)
                 x_flat = flatten_images(images)
@@ -252,16 +255,19 @@ def main():
                         for i in range(min(len(x_flat), 5)):
                             priority = loss.item()
                             forest.mulch.add(x_flat[i], labels[i].float().unsqueeze(0), priority)
+                print(f"[V7-TRACE] E{epoch} TRAIN batch {batch_idx+1}/{len(train_loader)} DONE ({time.strftime('%H:%M:%S')})")
 
             forest.update_ages()
             train_loss = total_loss / len(train_loader)
             train_acc = 100.0 * correct / total
 
+            # TEST
             forest.eval()
             task_head.eval()
             total_loss, correct, total = 0.0, 0, 0
             with torch.no_grad():
-                for images, labels in test_loader:
+                for test_idx, (images, labels) in enumerate(test_loader):
+                    print(f"[V7-TRACE] E{epoch} TEST batch {test_idx+1}/{len(test_loader)} SHAPE images {images.shape} labels {labels.shape} ({time.strftime('%H:%M:%S')})")
                     images = images.to(device)
                     labels = labels.to(device)
                     x_flat = flatten_images(images)
@@ -272,13 +278,13 @@ def main():
                     _, predicted = logits.max(1)
                     total += labels.size(0)
                     correct += predicted.eq(labels).sum().item()
+                    print(f"[V7-TRACE] E{epoch} TEST batch {test_idx+1}/{len(test_loader)} DONE ({time.strftime('%H:%M:%S')})")
             test_loss = total_loss / len(test_loader)
             test_acc = 100.0 * correct / total
             avg_fitness = sum(t.fitness for t in forest.trees) / len(forest.trees)
             num_trees = forest.num_trees()
             arch_diversity = min_arch_diversity(forest)
             memory_size = len(forest.mulch)
-            # Zapisywanie metryk tylko NA KONIEC EPOKI!
             metrics_tracker.update(epoch, {
                 "train_loss": train_loss,
                 "train_accuracy": train_acc,
@@ -290,10 +296,7 @@ def main():
                 "memory_size": memory_size
             })
 
-            print(f"Epoch {epoch:3d}/{args.epochs} | "
-                  f"Train: {train_acc:5.2f}% loss={train_loss:.4f} | "
-                  f"Test: {test_acc:5.2f}% loss={test_loss:.4f} | "
-                  f"Trees: {num_trees:2d} | Fit: {avg_fitness:.2f} | Arch.div: {arch_diversity}")
+            print(f"[V7-TRACE] EPOCH {epoch} END | Train: {train_acc:.2f}% | Test: {test_acc:.2f}% | Trees: {num_trees} | ({time.strftime('%H:%M:%S')})")
 
             if test_acc > best_test_acc:
                 best_test_acc = test_acc
