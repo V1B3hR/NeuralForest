@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg')  # <- CRUCIAL for running in headless CI/CD! Must be before any import matplotlib.pyplot
+matplotlib.use('Agg')  # Crucial: use non-GUI backend in CI/CD before ANY matplotlib import
 
 import sys
 import os
@@ -18,7 +18,7 @@ import numpy as np
 def parse_args():
     parser = argparse.ArgumentParser(description='CIFAR-10 Full Training Script')
     parser.add_argument('--epochs', type=int, default=250)
-    parser.add_argument('--batch_size', type=int, default=16)  # default now 16
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--checkpoint_every', type=int, default=25)
     parser.add_argument('--max_trees', type=int, default=90)
     parser.add_argument('--output_dim_per_tree', type=int, default=3,
@@ -35,29 +35,21 @@ def set_seed(seed=42):
     random.seed(seed)
 
 def get_tree_outputs_as_features(forest, x, output_dim_per_tree):
-    """
-    Get outputs from all trees as a feature vector.
-    Each tree should return [B, output_dim_per_tree], concatenate along feature dim.
-    If tree returns [B, 1], we tile it to [B, output_dim_per_tree]
-    """
     tree_outputs = []
     for tree in forest.trees:
         out = tree(x)
         if out.ndim == 1:
             out = out.unsqueeze(1)
-        # If output shape is [B,1] and we expect output_dim_per_tree>1, tile dummy
         if out.shape[1] == 1 and output_dim_per_tree > 1:
             out = out.repeat(1, output_dim_per_tree)
-        # If output_dim is less than needed, pad zeros
         if out.shape[1] < output_dim_per_tree:
-            pad = torch.zeros(out.shape[0], output_dim_per_tree-out.shape[1], device=out.device, dtype=out.dtype)
+            pad = torch.zeros(out.shape[0], output_dim_per_tree - out.shape[1], device=out.device, dtype=out.dtype)
             out = torch.cat([out, pad], dim=1)
-        # If output_dim is more, truncate
         if out.shape[1] > output_dim_per_tree:
             out = out[:, :output_dim_per_tree]
         tree_outputs.append(out)
     features = torch.cat(tree_outputs, dim=1)
-    return features  # [B, num_trees * output_dim_per_tree]
+    return features
 
 def min_arch_diversity(forest):
     arch_signatures = set()
@@ -83,7 +75,6 @@ def write_dummy_metrics(path):
         json.dump(dummy, f, indent=2)
 
 def write_dummy_png(path):
-    # Minimal blank PNG for CI artifact
     try:
         import matplotlib.pyplot as plt
         plt.figure()
@@ -98,6 +89,19 @@ def write_dummy_png(path):
         )
         with open(path, "wb") as f:
             f.write(minimal_png)
+
+def list_result_files(output_dir, info=""):
+    try:
+        out_path = Path(output_dir)
+        print(f"[DEBUG/V5] {info} Output directory absolute: {out_path.resolve()}")
+        for root, dirs, files in os.walk(out_path):
+            level = root.replace(str(out_path), '').count(os.sep)
+            prefix = ' ' * 2 * level
+            print(f"{prefix}- {root}/")
+            for f in files:
+                print(f"{prefix}  • {f}")
+    except Exception as e:
+        print(f"[DEBUG] Error listing files: {e}")
 
 def main():
     args = parse_args()
@@ -117,11 +121,13 @@ def main():
         print(f"{'='*70}")
         print(f"Device: {device}  Epochs: {args.epochs}  Batch size: {args.batch_size}")
         print(f"Max trees: {args.max_trees}, Output dim per tree: {args.output_dim_per_tree}")
-        print(f"Output dir: {args.output_dir} {'='*70}")
+        print(f"Output dir: {args.output_dir} ('{results_dir.resolve()}') {'='*70}")
 
         with open(results_dir / "config.json", 'w') as f:
             json.dump(vars(args), f, indent=2)
         print("✓ Config saved")
+
+        list_result_files(results_dir, "After config saved --")
 
         print("\n📦 Importing modules...")
         from NeuralForest import ForestEcosystem, TreeArch, DEVICE
@@ -160,6 +166,8 @@ def main():
         for tree in forest.trees:
             tree.epoch_age = 0
         print(f"✓ Forest created with {forest.num_trees()} trees")
+
+        list_result_files(results_dir, "After initial forest --")
 
         current_num_trees = forest.num_trees()
         task_head_input_dim = current_num_trees * args.output_dim_per_tree
@@ -341,10 +349,12 @@ def main():
 
         print("\n" + "=" * 70)
         print("✅ Training completed!\n💾 Saving results...")
+        list_result_files(results_dir, "Pre-metrics save --")
         metrics_tracker.save(metrics_json)
         print("✓ metrics.json saved")
         metrics_tracker.plot(learning_png)
         print("✓ learning_curves.png saved")
+        list_result_files(results_dir, "Post-metrics save --")
 
         with open(report_md, "w") as f:
             f.write("# NeuralForest CIFAR-10 Training Report\n\n")
@@ -369,7 +379,9 @@ def main():
             f.write("## Tree Evolution\n\n")
             f.write(f"Started with {initial_trees} trees, ended with {num_trees} trees. Developed {arch_diversity} unique architectural patterns.\n\n---\n*Generated by NeuralForest Training System*\n")
         print("✓ final_report.md saved")
-        print(f"✓ Results saved to: {results_dir}")
+
+        list_result_files(results_dir, "FINAL after all saves --")
+        print(f"✓ Results saved to: {results_dir.resolve()}")
         print(f"✓ Best test accuracy: {best_test_acc:.2f}%")
         print(f"✓ Feature dimension: {num_trees} trees × {args.output_dim_per_tree} = {num_trees * args.output_dim_per_tree}")
         print("\n🎉 All done!")
@@ -383,13 +395,14 @@ def main():
             f.write("# Training Failed\n\n")
             f.write(f"## Error\n\n```\n{str(e)}\n```\n\n")
             f.write("See error.log for full traceback.\n")
-        print("✓ error log and final_report.md saved")
+        print("✓ error log and final_report.md saved (exception branch)")
         if not metrics_json.exists():
             write_dummy_metrics(metrics_json)
             print("✓ dummy metrics.json saved (failure)")
         if not learning_png.exists():
             write_dummy_png(learning_png)
             print("✓ dummy learning_curves.png saved (failure)")
+        list_result_files(results_dir, "AFTER EXCEPTION --")
         raise
 
 if __name__ == "__main__":
