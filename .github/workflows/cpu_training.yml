@@ -11,7 +11,7 @@ on:
       batch_size:
         description: 'Batch size (smaller = faster on CPU)'
         required: true
-        default: '18'
+        default: '16'
         type: string
       checkpoint_every:
         description: 'Save checkpoint every N epochs'
@@ -71,7 +71,7 @@ jobs:
         id: training
         run: |
           EPOCHS=${{ github.event.inputs.epochs || '250' }}
-          BATCH_SIZE=${{ github.event.inputs.batch_size || '18' }}
+          BATCH_SIZE=${{ github.event.inputs.batch_size || '16' }}
           CHECKPOINT_EVERY=${{ github.event.inputs.checkpoint_every || '25' }}
           MAX_TREES=${{ github.event.inputs.max_trees || '90' }}
           OUTPUT_DIM_PER_TREE=${{ github.event.inputs.output_dim_per_tree || '3' }}
