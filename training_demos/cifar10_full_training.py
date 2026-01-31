@@ -1,4 +1,6 @@
-"""CIFAR-10 Full Training Script - Using Tree Outputs as Features (Optimized, Single-Cell)."""
+"""CIFAR-10 Full Training Script - Using Tree Outputs as Features (Optimized, Single-Cell).
+Modified for robust artifact logging: Always writes metrics.json, learning_curves.png (dummy if failed) and final_report.md.
+"""
 
 import sys
 import os
@@ -17,7 +19,7 @@ import numpy as np
 def parse_args():
     parser = argparse.ArgumentParser(description='CIFAR-10 Full Training Script')
     parser.add_argument('--epochs', type=int, default=250)
-    parser.add_argument('--batch_size', type=int, default=18)
+    parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--checkpoint_every', type=int, default=25)
     parser.add_argument('--max_trees', type=int, default=90)
     parser.add_argument('--output_dim_per_tree', type=int, default=3,
@@ -47,7 +49,7 @@ def get_tree_outputs_as_features(forest, x, output_dim_per_tree):
         # If output shape is [B,1] and we expect output_dim_per_tree>1, tile dummy
         if out.shape[1] == 1 and output_dim_per_tree > 1:
             out = out.repeat(1, output_dim_per_tree)
-        # If output_dim is less than needed (rare) pad zeros
+        # If output_dim is less than needed, pad zeros
         if out.shape[1] < output_dim_per_tree:
             pad = torch.zeros(out.shape[0], output_dim_per_tree-out.shape[1], device=out.device, dtype=out.dtype)
             out = torch.cat([out, pad], dim=1)
@@ -66,6 +68,39 @@ def min_arch_diversity(forest):
             arch_signatures.add(sig)
     return len(arch_signatures)
 
+def write_dummy_metrics(path):
+    dummy = {
+        "epoch": [],
+        "train_loss": [],
+        "train_accuracy": [],
+        "test_loss": [],
+        "test_accuracy": [],
+        "num_trees": [],
+        "avg_fitness": [],
+        "architecture_diversity": [],
+        "memory_size": [],
+    }
+    with open(path, "w") as f:
+        json.dump(dummy, f, indent=2)
+
+def write_dummy_png(path):
+    # Write a minimal blank PNG for CI artifact
+    try:
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.text(0.5, 0.5, "No Data", ha='center', va='center')
+        plt.axis('off')
+        plt.savefig(path)
+        plt.close()
+    except Exception:
+        # Fallback: Write a static minimal PNG header (black 1x1 pixel)
+        minimal_png = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+            b"\x00\x00\x00\nIDATx\x9cc`\x00\x00\x00\x02\x00\x01\xe2!bc\x00\x00\x00\x00IEND\xaeB`\x82"
+        )
+        with open(path, "wb") as f:
+            f.write(minimal_png)
+
 def main():
     args = parse_args()
     results_dir = Path(args.output_dir)
@@ -73,6 +108,9 @@ def main():
     checkpoints_dir = results_dir / "checkpoints"
     checkpoints_dir.mkdir(exist_ok=True)
     error_log_path = results_dir / "error.log"
+    metrics_json = results_dir / "metrics.json"
+    learning_png = results_dir / "learning_curves.png"
+    report_md = results_dir / "final_report.md"
 
     try:
         set_seed(42)
@@ -303,10 +341,10 @@ def main():
 
         print("\n" + "=" * 70)
         print("✅ Training completed!\n💾 Saving results...")
-        metrics_tracker.save(results_dir / "metrics.json")
-        metrics_tracker.plot(results_dir / "learning_curves.png")
+        metrics_tracker.save(metrics_json)
+        metrics_tracker.plot(learning_png)
 
-        with open(results_dir / "final_report.md", "w") as f:
+        with open(report_md, "w") as f:
             f.write("# NeuralForest CIFAR-10 Training Report\n\n")
             f.write("## Configuration\n\n")
             f.write(f"- **Epochs**: {args.epochs}\n")
@@ -335,14 +373,21 @@ def main():
         print("\n🎉 All done!")
 
     except Exception as e:
+        # Robust: Always create metrics.json and learning_curves.png even on failure
         error_msg = f"ERROR: Training failed!\n\n{traceback.format_exc()}"
         print(error_msg)
         with open(error_log_path, 'w') as f:
             f.write(error_msg)
-        with open(results_dir / "final_report.md", 'w') as f:
+        with open(report_md, 'w') as f:
             f.write("# Training Failed\n\n")
             f.write(f"## Error\n\n```\n{str(e)}\n```\n\n")
             f.write("See error.log for full traceback.\n")
+        if not metrics_json.exists():
+            write_dummy_metrics(metrics_json)
+        if not learning_png.exists():
+            write_dummy_png(learning_png)
+        # Write summary to artifact log
+        # (Either failure or interruption, artifacts will always upload)
         raise
 
 if __name__ == "__main__":
