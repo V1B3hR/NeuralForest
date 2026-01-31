@@ -1,11 +1,12 @@
 import matplotlib
-matplotlib.use('Agg')  # Crucial: use non-GUI backend in CI/CD before ANY matplotlib import
+matplotlib.use('Agg')  # must be before importing pyplot in a headless/CI env
 
 import sys
 import os
 import argparse
 import json
 from pathlib import Path
+import time
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,8 +22,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--checkpoint_every', type=int, default=25)
     parser.add_argument('--max_trees', type=int, default=90)
-    parser.add_argument('--output_dim_per_tree', type=int, default=3,
-                        help='Output dimension per tree (default per repo: 3)')
+    parser.add_argument('--output_dim_per_tree', type=int, default=3)
     parser.add_argument('--output_dir', type=str, default='training_demos/results/cifar10_full')
     parser.add_argument('--device', type=str, default='cpu')
     return parser.parse_args()
@@ -34,7 +34,7 @@ def set_seed(seed=42):
     import random
     random.seed(seed)
 
-def get_tree_outputs_as_features(forest, x, output_dim_per_tree):
+def safe_tree_features(forest, x, output_dim_per_tree):
     tree_outputs = []
     for tree in forest.trees:
         out = tree(x)
@@ -48,8 +48,7 @@ def get_tree_outputs_as_features(forest, x, output_dim_per_tree):
         if out.shape[1] > output_dim_per_tree:
             out = out[:, :output_dim_per_tree]
         tree_outputs.append(out)
-    features = torch.cat(tree_outputs, dim=1)
-    return features
+    return torch.cat(tree_outputs, dim=1)
 
 def min_arch_diversity(forest):
     arch_signatures = set()
@@ -90,16 +89,13 @@ def write_dummy_png(path):
         with open(path, "wb") as f:
             f.write(minimal_png)
 
-def list_result_files(output_dir, info=""):
+def list_result_files(output_dir, stage=""):
     try:
         out_path = Path(output_dir)
-        print(f"[DEBUG/V5] {info} Output directory absolute: {out_path.resolve()}")
+        print(f"[DEBUG] {stage} Output files in {out_path.resolve()}:")
         for root, dirs, files in os.walk(out_path):
-            level = root.replace(str(out_path), '').count(os.sep)
-            prefix = ' ' * 2 * level
-            print(f"{prefix}- {root}/")
-            for f in files:
-                print(f"{prefix}  • {f}")
+            for name in files:
+                print("  -", os.path.join(root, name))
     except Exception as e:
         print(f"[DEBUG] Error listing files: {e}")
 
@@ -117,19 +113,16 @@ def main():
     try:
         set_seed(42)
         device = torch.device(args.device)
-        print(f"🌲 NeuralForest CIFAR-10 Training")
-        print(f"{'='*70}")
+        print(f"\n==== NeuralForest CIFAR-10 Training ====")
+        print(f"Started: {time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Device: {device}  Epochs: {args.epochs}  Batch size: {args.batch_size}")
         print(f"Max trees: {args.max_trees}, Output dim per tree: {args.output_dim_per_tree}")
-        print(f"Output dir: {args.output_dir} ('{results_dir.resolve()}') {'='*70}")
-
+        print(f"Output dir: {args.output_dir} (abs: {results_dir.resolve()})")
         with open(results_dir / "config.json", 'w') as f:
             json.dump(vars(args), f, indent=2)
-        print("✓ Config saved")
 
         list_result_files(results_dir, "After config saved --")
 
-        print("\n📦 Importing modules...")
         from NeuralForest import ForestEcosystem, TreeArch, DEVICE
         from ecosystem_simulation import EcosystemSimulator
         from training_demos.layer_wise_optimizer import LayerWiseConfig, LayerWiseOptimizer
@@ -137,14 +130,12 @@ def main():
         from training_demos.utils import DatasetLoader, MetricsTracker
         print("✓ All modules imported")
 
-        print("\n📦 Loading CIFAR-10 dataset...")
         train_loader, test_loader = DatasetLoader.get_cifar10(
             batch_size=args.batch_size,
             num_workers=0
         )
         print(f"✓ Train batches: {len(train_loader)}, Test batches: {len(test_loader)}")
 
-        print("\n🌱 Creating NeuralForest with diverse trees...")
         forest = ForestEcosystem(
             input_dim=3072,
             hidden_dim=512,
@@ -165,14 +156,11 @@ def main():
             forest._plant_tree(arch)
         for tree in forest.trees:
             tree.epoch_age = 0
-        print(f"✓ Forest created with {forest.num_trees()} trees")
-
-        list_result_files(results_dir, "After initial forest --")
 
         current_num_trees = forest.num_trees()
+        print(f"✓ Forest created with {current_num_trees} trees")
         task_head_input_dim = current_num_trees * args.output_dim_per_tree
 
-        print(f"\n🎯 Creating task head (input: {task_head_input_dim})...")
         task_head = EnhancedTaskHead(
             input_dim=task_head_input_dim,
             hidden_dim=64,
@@ -211,8 +199,7 @@ def main():
         def flatten_images(images):
             return images.view(images.size(0), -1)
 
-        print("\n🚀 Starting training...")
-        print("=" * 70)
+        print("\n==== Starting training ====")
         best_test_acc = 0.0
 
         for epoch in range(1, args.epochs + 1):
@@ -246,7 +233,7 @@ def main():
                 images = images.to(device)
                 labels = labels.to(device)
                 x_flat = flatten_images(images)
-                tree_features = get_tree_outputs_as_features(forest, x_flat, args.output_dim_per_tree)
+                tree_features = safe_tree_features(forest, x_flat, args.output_dim_per_tree)
                 logits = task_head(tree_features)
                 loss = F.cross_entropy(logits, labels)
                 optimizer.zero_grad()
@@ -259,7 +246,7 @@ def main():
                 correct += predicted.eq(labels).sum().item()
                 with torch.no_grad():
                     for tree in forest.trees:
-                        tree.update_fitness(loss.item() * np.random.uniform(0.9, 1.1)) # Slightly noisy
+                        tree.update_fitness(loss.item() * np.random.uniform(0.9, 1.1))
                 if batch_idx % 10 == 0:
                     with torch.no_grad():
                         for i in range(min(len(x_flat), 5)):
@@ -278,7 +265,7 @@ def main():
                     images = images.to(device)
                     labels = labels.to(device)
                     x_flat = flatten_images(images)
-                    tree_features = get_tree_outputs_as_features(forest, x_flat, args.output_dim_per_tree)
+                    tree_features = safe_tree_features(forest, x_flat, args.output_dim_per_tree)
                     logits = task_head(tree_features)
                     loss = F.cross_entropy(logits, labels)
                     total_loss += loss.item()
@@ -291,6 +278,7 @@ def main():
             num_trees = forest.num_trees()
             arch_diversity = min_arch_diversity(forest)
             memory_size = len(forest.mulch)
+            # Zapisywanie metryk tylko NA KONIEC EPOKI!
             metrics_tracker.update(epoch, {
                 "train_loss": train_loss,
                 "train_accuracy": train_acc,
@@ -347,14 +335,15 @@ def main():
                 print(f"🌱 Planted new tree (total: {forest.num_trees()}, arch.div: {min_arch_diversity(forest)})")
             opt_factory.update_tree_ages(forest)
 
-        print("\n" + "=" * 70)
-        print("✅ Training completed!\n💾 Saving results...")
-        list_result_files(results_dir, "Pre-metrics save --")
+        print("\n" + "=" * 60)
+        print("✅ Training completed — saving results…")
+        list_result_files(results_dir, stage="Pre-metrics save")
+        start = time.time()
         metrics_tracker.save(metrics_json)
-        print("✓ metrics.json saved")
+        print(f"✓ metrics.json saved ({metrics_json}) ({int(time.time()-start)}s)")
+        start = time.time()
         metrics_tracker.plot(learning_png)
-        print("✓ learning_curves.png saved")
-        list_result_files(results_dir, "Post-metrics save --")
+        print(f"✓ learning_curves.png saved ({learning_png}) ({int(time.time()-start)}s)")
 
         with open(report_md, "w") as f:
             f.write("# NeuralForest CIFAR-10 Training Report\n\n")
@@ -378,16 +367,13 @@ def main():
             f.write("## Learning Curves\n\n![Learning Curves](learning_curves.png)\n\n")
             f.write("## Tree Evolution\n\n")
             f.write(f"Started with {initial_trees} trees, ended with {num_trees} trees. Developed {arch_diversity} unique architectural patterns.\n\n---\n*Generated by NeuralForest Training System*\n")
-        print("✓ final_report.md saved")
-
-        list_result_files(results_dir, "FINAL after all saves --")
-        print(f"✓ Results saved to: {results_dir.resolve()}")
-        print(f"✓ Best test accuracy: {best_test_acc:.2f}%")
-        print(f"✓ Feature dimension: {num_trees} trees × {args.output_dim_per_tree} = {num_trees * args.output_dim_per_tree}")
+        print(f"✓ final_report.md saved")
+        list_result_files(results_dir, stage="AFTER ALL SAVES")
+        print(f"✓ Results ready in: {results_dir.resolve()}")
         print("\n🎉 All done!")
 
     except Exception as e:
-        error_msg = f"ERROR: Training failed!\n\n{traceback.format_exc()}"
+        error_msg = f"ERROR: Training failed!\n{traceback.format_exc()}"
         print(error_msg)
         with open(error_log_path, 'w') as f:
             f.write(error_msg)
@@ -395,14 +381,13 @@ def main():
             f.write("# Training Failed\n\n")
             f.write(f"## Error\n\n```\n{str(e)}\n```\n\n")
             f.write("See error.log for full traceback.\n")
-        print("✓ error log and final_report.md saved (exception branch)")
         if not metrics_json.exists():
             write_dummy_metrics(metrics_json)
             print("✓ dummy metrics.json saved (failure)")
         if not learning_png.exists():
             write_dummy_png(learning_png)
             print("✓ dummy learning_curves.png saved (failure)")
-        list_result_files(results_dir, "AFTER EXCEPTION --")
+        list_result_files(results_dir, stage="AFTER EXCEPTION")
         raise
 
 if __name__ == "__main__":
