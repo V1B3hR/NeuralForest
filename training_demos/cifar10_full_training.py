@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=250)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--checkpoint_every', type=int, default=25)
-    parser.add_argument('--max_trees', type=int, default=90)
+    parser.add_argument('--max_trees', type=int, default=30)
     parser.add_argument('--output_dim_per_tree', type=int, default=3)
     parser.add_argument('--output_dir', type=str, default='training_demos/results/cifar10_full')
     parser.add_argument('--device', type=str, default='cpu')
@@ -146,10 +146,10 @@ def main():
         initial_trees = min(14, args.max_trees)
         for i in range(initial_trees - forest.num_trees()):
             arch = TreeArch(
-                num_layers=np.random.randint(2, 6),
-                hidden_dim=np.random.choice([256, 512, 1024]),
+                num_layers=np.random.randint(2, 7),
+                hidden_dim=np.random.choice([256, 512, 768, 1024]),
                 activation=str(np.random.choice(['relu', 'gelu', 'tanh'])),
-                dropout=float(np.random.uniform(0.0, 0.3)),
+                dropout=float(np.random.uniform(0.0, 0.4)),
                 normalization=str(np.random.choice(['none', 'layer'])),
                 residual=bool(np.random.choice([True, False]))
             )
@@ -172,7 +172,7 @@ def main():
         print("✓ Task head created")
 
         opt_config = LayerWiseConfig(
-            base_lr=0.01,
+            base_lr=0.003,
             min_lr=0.0001,
             half_life=60.0,
             fitness_scale=5.0,
@@ -195,6 +195,7 @@ def main():
             device=device
         )
         metrics_tracker = MetricsTracker()
+        last_diversity_increase_epoch = 0  # Track when diversity last increased
 
         def flatten_images(images):
             return images.view(images.size(0), -1)
@@ -250,9 +251,17 @@ def main():
                 with torch.no_grad():
                     for tree in forest.trees:
                         tree.update_fitness(loss.item() * np.random.uniform(0.9, 1.1))
-                if batch_idx % 10 == 0:
+                # Add more samples to mulch buffer more frequently
+                if len(forest.mulch) < forest.mulch.max_size:
+                    # If buffer not full, add samples from every batch
                     with torch.no_grad():
-                        for i in range(min(len(x_flat), 5)):
+                        for i in range(min(len(x_flat), 10)):
+                            priority = loss.item()
+                            forest.mulch.add(x_flat[i], labels[i].float().unsqueeze(0), priority)
+                elif batch_idx % 5 == 0:
+                    # If buffer full, add samples periodically
+                    with torch.no_grad():
+                        for i in range(min(len(x_flat), 10)):
                             priority = loss.item()
                             forest.mulch.add(x_flat[i], labels[i].float().unsqueeze(0), priority)
                 print(f"[V7-TRACE] E{epoch} TRAIN batch {batch_idx+1}/{len(train_loader)} DONE ({time.strftime('%H:%M:%S')})")
@@ -285,6 +294,15 @@ def main():
             num_trees = forest.num_trees()
             arch_diversity = min_arch_diversity(forest)
             memory_size = len(forest.mulch)
+            
+            # Track diversity changes
+            if epoch > 1:
+                prev_diversity = metrics_tracker.metrics.get("architecture_diversity", [0])[-1] if metrics_tracker.metrics.get("architecture_diversity") else 0
+                if arch_diversity > prev_diversity:
+                    last_diversity_increase_epoch = epoch
+                elif epoch - last_diversity_increase_epoch > 50:
+                    print(f"⚠️  Warning: Architecture diversity has not increased for {epoch - last_diversity_increase_epoch} epochs (current: {arch_diversity})")
+            
             metrics_tracker.update(epoch, {
                 "train_loss": train_loss,
                 "train_accuracy": train_acc,
@@ -320,18 +338,22 @@ def main():
                 }, checkpoints_dir / f"model_epoch{epoch}.pt")
                 print(f"💾 Checkpoint saved at epoch {epoch}")
 
-            if epoch % 10 == 0 and forest.num_trees() > 4:
-                weak_trees = [t.id for t in forest.trees if t.age > 30 and t.fitness < 2.0]
+            # More frequent and decisive pruning (every 5 epochs instead of 10)
+            if epoch % 5 == 0 and forest.num_trees() > 4:
+                weak_trees = [t.id for t in forest.trees if t.age > 20 and t.fitness < 2.5]
                 if weak_trees and arch_diversity > 2:
-                    forest._prune_trees(weak_trees[:2], min_keep=3)
-                    print(f"🪓 Pruned {len(weak_trees[:2])} weak trees (arch.div: {arch_diversity})")
+                    # Prune up to 3 weak trees at a time
+                    num_to_prune = min(3, len(weak_trees))
+                    forest._prune_trees(weak_trees[:num_to_prune], min_keep=3)
+                    print(f"🪓 Pruned {num_to_prune} weak trees (arch.div: {arch_diversity})")
+            # Plant new trees with greater diversity
             if (epoch % 15 == 0 and forest.num_trees() < args.max_trees) or arch_diversity <= 2:
                 arch = TreeArch(
-                    num_layers=int(np.random.randint(2, 5)),
-                    hidden_dim=512,
+                    num_layers=int(np.random.randint(2, 7)),
+                    hidden_dim=int(np.random.choice([256, 512, 768, 1024])),
                     activation=str(np.random.choice(['relu', 'gelu', 'tanh'])),
-                    dropout=float(np.random.uniform(0.0, 0.2)),
-                    normalization=str(np.random.choice(['none', 'layer'])),
+                    dropout=float(np.random.uniform(0.0, 0.4)),
+                    normalization=str(np.random.choice(['none', 'layer', 'batch'])),
                     residual=bool(np.random.choice([True, False]))
                 )
                 forest._plant_tree(arch)
