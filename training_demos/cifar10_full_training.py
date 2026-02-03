@@ -196,7 +196,7 @@ def main():
         )
         metrics_tracker = MetricsTracker()
         last_diversity_increase_epoch = 0  # Track when diversity last increased
-        last_diversity_warning_epoch = -100  # Track when we last warned about stagnant diversity
+        last_diversity_warning_epoch = -50  # Track when we last warned (initialized to allow first warning at epoch 50+)
 
         def flatten_images(images):
             return images.view(images.size(0), -1)
