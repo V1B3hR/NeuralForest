@@ -174,11 +174,11 @@ def min_arch_diversity(forest):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='CIFAR-10 Full Training Script (Stable Single File)')
-    parser.add_argument('--epochs', type=int, default=5)
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--checkpoint_every', type=int, default=2)
-    parser.add_argument('--max_trees', type=int, default=6)
-    parser.add_argument('--output_dim_per_tree', type=int, default=2)
+    parser.add_argument('--epochs', type=int, default=250)
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--checkpoint_every', type=int, default=25)
+    parser.add_argument('--max_trees', type=int, default=90)
+    parser.add_argument('--output_dim_per_tree', type=int, default=3)
     parser.add_argument('--output_dir', type=str, default='training_demos/results/cifar10_full')
     parser.add_argument('--device', type=str, default='cpu')
     return parser.parse_args()
