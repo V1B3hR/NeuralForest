@@ -196,6 +196,7 @@ def main():
         )
         metrics_tracker = MetricsTracker()
         last_diversity_increase_epoch = 0  # Track when diversity last increased
+        last_diversity_warning_epoch = -100  # Track when we last warned about stagnant diversity
 
         def flatten_images(images):
             return images.view(images.size(0), -1)
@@ -252,14 +253,8 @@ def main():
                     for tree in forest.trees:
                         tree.update_fitness(loss.item() * np.random.uniform(0.9, 1.1))
                 # Add more samples to mulch buffer more frequently
-                if len(forest.mulch) < forest.mulch.max_size:
-                    # If buffer not full, add samples from every batch
-                    with torch.no_grad():
-                        for i in range(min(len(x_flat), 10)):
-                            priority = loss.item()
-                            forest.mulch.add(x_flat[i], labels[i].float().unsqueeze(0), priority)
-                elif batch_idx % 5 == 0:
-                    # If buffer full, add samples periodically
+                should_add_to_mulch = (len(forest.mulch) < forest.mulch.max_size) or (batch_idx % 5 == 0)
+                if should_add_to_mulch:
                     with torch.no_grad():
                         for i in range(min(len(x_flat), 10)):
                             priority = loss.item()
@@ -297,11 +292,15 @@ def main():
             
             # Track diversity changes
             if epoch > 1:
-                prev_diversity = metrics_tracker.metrics.get("architecture_diversity", [0])[-1] if metrics_tracker.metrics.get("architecture_diversity") else 0
-                if arch_diversity > prev_diversity:
-                    last_diversity_increase_epoch = epoch
-                elif epoch - last_diversity_increase_epoch > 50:
-                    print(f"⚠️  Warning: Architecture diversity has not increased for {epoch - last_diversity_increase_epoch} epochs (current: {arch_diversity})")
+                arch_div_history = metrics_tracker.metrics.get("architecture_diversity", [])
+                if arch_div_history:
+                    prev_diversity = arch_div_history[-1]
+                    if arch_diversity > prev_diversity:
+                        last_diversity_increase_epoch = epoch
+                    elif epoch - last_diversity_increase_epoch > 50 and epoch - last_diversity_warning_epoch >= 50:
+                        # Print warning only once every 50 epochs without increase
+                        print(f"⚠️  Warning: Architecture diversity has not increased for {epoch - last_diversity_increase_epoch} epochs (current: {arch_diversity})")
+                        last_diversity_warning_epoch = epoch
             
             metrics_tracker.update(epoch, {
                 "train_loss": train_loss,
