@@ -253,7 +253,7 @@ def main():
                     for tree in forest.trees:
                         tree.update_fitness(loss.item() * np.random.uniform(0.9, 1.1))
                 # Add more samples to mulch buffer more frequently
-                should_add_to_mulch = (len(forest.mulch) < forest.mulch.max_size) or (batch_idx % 5 == 0)
+                should_add_to_mulch = (len(forest.mulch) < forest.mulch.capacity) or (batch_idx % 5 == 0)
                 if should_add_to_mulch:
                     with torch.no_grad():
                         for i in range(min(len(x_flat), 10)):
