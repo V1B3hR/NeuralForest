@@ -57,15 +57,23 @@ class TreeNet(nn.Module):
         layers = []
         last_dim = input_dim
         for i in range(arch.num_layers):
-            layers.append(nn.Linear(last_dim, arch.hidden_dim))
-            if arch.normalization == 'layer':
-                layers.append(nn.LayerNorm(arch.hidden_dim))
-            if arch.normalization == 'batch':
-                layers.append(nn.BatchNorm1d(arch.hidden_dim))
-            layers.append(getattr(F, arch.activation, F.relu))
-            if arch.dropout > 0:
-                layers.append(nn.Dropout(arch.dropout))
-            last_dim = arch.hidden_dim
+    layers.append(nn.Linear(last_dim, arch.hidden_dim))
+    if arch.normalization == 'layer':
+        layers.append(nn.LayerNorm(arch.hidden_dim))
+    if arch.normalization == 'batch':
+        layers.append(nn.BatchNorm1d(arch.hidden_dim))
+    # Dodaj poprawny moduł aktywacji:
+    if arch.activation == 'relu':
+        layers.append(nn.ReLU())
+    elif arch.activation == 'tanh':
+        layers.append(nn.Tanh())
+    elif arch.activation == 'gelu':
+        layers.append(nn.GELU())
+    else:
+        layers.append(nn.ReLU())  # domyślna aktywacja
+    if arch.dropout > 0:
+        layers.append(nn.Dropout(arch.dropout))
+    last_dim = arch.hidden_dim
         self.net = nn.Sequential(*[l for l in layers if callable(l) or isinstance(l, nn.Module)])
         self.out = nn.Linear(last_dim, 1)
         self.epoch_age = 0
