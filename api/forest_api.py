@@ -7,7 +7,9 @@ and checkpoint management.
 """
 
 import time
-from typing import Dict, List, Any, Optional
+from collections import deque
+from typing import Dict, List, Any, Optional, Union
+import numpy as np
 import torch
 
 
@@ -124,6 +126,10 @@ class NeuralForestAPI:
         status = api.get_forest_status()
     """
 
+    # Class constants
+    EPSILON = 1e-8
+    DEFAULT_PREDICTION_HISTORY_SIZE = 1000
+
     def __init__(self, checkpoint_path: Optional[str] = None, forest=None, device=None):
         """
         Initialize the API.
@@ -152,16 +158,16 @@ class NeuralForestAPI:
 
         # Performance tracking
         self.prediction_count = 0
-        self.prediction_times = []
+        self.prediction_times = deque(maxlen=self.DEFAULT_PREDICTION_HISTORY_SIZE)
         self.training_count = 0
 
         # Health tracking
         self.last_health_check = None
-        self.health_history = []
+        self.health_history = deque(maxlen=100)
 
     def predict(
         self,
-        inputs: Dict[str, torch.Tensor],
+        inputs: Dict[str, Union[torch.Tensor, np.ndarray, List[float]]],
         top_k: int = 3,
         return_details: bool = False,
     ) -> Dict[str, Any]:
@@ -178,26 +184,41 @@ class NeuralForestAPI:
         """
         start_time = time.time()
 
-        # Extract input tensor
-        if "input" in inputs:
-            x = inputs["input"]
-        elif "x" in inputs:
-            x = inputs["x"]
-        else:
-            # Use first value
-            x = next(iter(inputs.values()))
+        # Validate inputs
+        if not inputs:
+            return {
+                "error": "Input dictionary cannot be empty",
+                "success": False,
+                "processing_time_ms": (time.time() - start_time) * 1000,
+            }
 
-        # Ensure correct device and shape
-        if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x, dtype=torch.float32)
-        x = x.to(self.device)
+        if top_k < 1:
+            return {
+                "error": f"top_k must be >= 1, got {top_k}",
+                "success": False,
+                "processing_time_ms": (time.time() - start_time) * 1000,
+            }
 
-        if x.dim() == 1:
-            x = x.unsqueeze(0)
+        try:
+            x = self._extract_input_tensor(inputs)
 
-        # Make prediction
-        with torch.no_grad():
-            output, weights, tree_outputs = self.forest.forward_forest(x, top_k=top_k)
+            # Validate shape matches forest input dimension
+            if x.shape[-1] != self.forest.input_dim:
+                raise ValueError(
+                    f"Input dimension mismatch: expected {self.forest.input_dim}, "
+                    f"got {x.shape[-1]}"
+                )
+
+            # Make prediction
+            with torch.no_grad():
+                output, weights, tree_outputs = self.forest.forward_forest(x, top_k=top_k)
+
+        except Exception as e:
+            return {
+                "error": str(e),
+                "success": False,
+                "processing_time_ms": (time.time() - start_time) * 1000,
+            }
 
         # Compute confidence
         confidence = self._compute_confidence(weights, tree_outputs)
@@ -222,7 +243,7 @@ class NeuralForestAPI:
 
     def train_online(
         self,
-        inputs: Dict[str, torch.Tensor],
+        inputs: Dict[str, Union[torch.Tensor, np.ndarray, List[float]]],
         target: torch.Tensor,
         feedback: Optional[float] = None,
     ) -> Dict[str, Any]:
@@ -237,25 +258,14 @@ class NeuralForestAPI:
         Returns:
             Dictionary with training results
         """
-        # Extract input
-        if "input" in inputs:
-            x = inputs["input"]
-        elif "x" in inputs:
-            x = inputs["x"]
-        else:
-            x = next(iter(inputs.values()))
+        x = self._extract_input_tensor(inputs)
 
         # Ensure tensors
-        if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x, dtype=torch.float32)
         if not isinstance(target, torch.Tensor):
             target = torch.tensor(target, dtype=torch.float32)
 
-        x = x.to(self.device)
         target = target.to(self.device)
 
-        if x.dim() == 1:
-            x = x.unsqueeze(0)
         if target.dim() == 1:
             target = target.unsqueeze(0)
 
@@ -399,6 +409,39 @@ class NeuralForestAPI:
 
         ForestCheckpoint.save(self.forest, path, metadata)
 
+    def _extract_input_tensor(
+        self, inputs: Dict[str, Union[torch.Tensor, np.ndarray, List[float]]]
+    ) -> torch.Tensor:
+        """
+        Extract and prepare input tensor from various input formats.
+
+        Looks for the input value under the key "input", then "x", then falls
+        back to the first value in the dictionary. If multiple unrecognised keys
+        are present the first value (insertion order) is used.
+
+        Args:
+            inputs: Dictionary with input data under any key
+
+        Returns:
+            Prepared tensor on correct device with batch dimension
+        """
+        if "input" in inputs:
+            x = inputs["input"]
+        elif "x" in inputs:
+            x = inputs["x"]
+        else:
+            # Fall back to first value; keys "input" or "x" are preferred
+            x = next(iter(inputs.values()))
+
+        if not isinstance(x, torch.Tensor):
+            x = torch.as_tensor(x, dtype=torch.float32)
+        x = x.to(self.device)
+
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+
+        return x
+
     def _compute_confidence(
         self, weights: torch.Tensor, tree_outputs: List[torch.Tensor]
     ) -> float:
@@ -410,7 +453,7 @@ class NeuralForestAPI:
         - Tree outputs agree (low variance)
         """
         # Concentration of routing weights
-        weight_entropy = -(weights * (weights + 1e-8).log()).sum(dim=-1).mean().item()
+        weight_entropy = -(weights * (weights + self.EPSILON).log()).sum(dim=-1).mean().item()
         max_entropy = torch.log(
             torch.tensor(max(weights.size(-1), 2), dtype=torch.float32)
         ).item()
