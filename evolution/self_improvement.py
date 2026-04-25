@@ -348,6 +348,8 @@ class SelfImprovementLoop:
         recent_rate = recent_success / max(1, recent_total)
         improvement_score = recent_rate - early_rate
 
+        # A 5% gain in success rate is the minimum meaningful signal;
+        # smaller differences are likely due to randomness or small sample sizes.
         learning_is_effective = improvement_score > 0.05
 
         if learning_is_effective:
