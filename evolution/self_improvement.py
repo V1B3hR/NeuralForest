@@ -269,6 +269,111 @@ class SelfImprovementLoop:
             "recent_cycles": recent,
         }
 
+    def get_learning_effectiveness(self) -> Dict[str, Any]:
+        """
+        Evaluate whether the learning mechanism is improving action selection over time.
+
+        Compares action selection distribution and success rates between the first
+        third (early) and last third (recent) of ``improvement_history``.  A
+        positive difference in success rate indicates the bandit-style learning is
+        steering the system toward more effective actions.
+
+        Returns:
+            dict with the following keys:
+
+            * **status** (``"effective"`` | ``"ineffective"`` | ``"insufficient_data"``) –
+              Summary verdict on learning effectiveness.
+            * **improvement_score** (float) – Difference between recent and early
+              success rates (``recent_rate - early_rate``).  Positive means
+              improvement.
+            * **early_success_rate** (float) – Fraction of actions that succeeded
+              (not rolled back) in the early third of history.
+            * **recent_success_rate** (float) – Same metric for the recent third.
+            * **action_trends** (dict) – For every action seen, a sub-dict with
+              ``"early"`` and ``"recent"`` selection counts.
+            * **mean_rewards_by_action** (dict) – Current EMA mean reward for
+              every known action (from ``action_stats``).
+            * **recommendation** (str) – Human-readable suggestion based on the
+              observed improvement score.
+        """
+        if len(self.improvement_history) < 2:
+            return {
+                "status": "insufficient_data",
+                "message": "Need at least 2 cycles to evaluate learning effectiveness",
+            }
+
+        history = list(self.improvement_history)
+        third = max(1, len(history) // 3)
+        early_cycles = history[:third]
+        recent_cycles = history[-third:]
+
+        # Tally action selection frequency
+        action_trends: Dict[str, Dict[str, int]] = defaultdict(
+            lambda: {"early": 0, "recent": 0}
+        )
+        for entry in early_cycles:
+            for action_outcome in entry["result"].get("applied", []):
+                action = action_outcome.get("action")
+                if action:
+                    action_trends[action]["early"] += 1
+
+        for entry in recent_cycles:
+            for action_outcome in entry["result"].get("applied", []):
+                action = action_outcome.get("action")
+                if action:
+                    action_trends[action]["recent"] += 1
+
+        # Calculate success rates
+        early_success = sum(
+            1
+            for e in early_cycles
+            for a in e["result"].get("applied", [])
+            if a.get("success") and not a.get("rolled_back")
+        )
+        early_total = sum(
+            len(e["result"].get("applied", [])) for e in early_cycles
+        )
+
+        recent_success = sum(
+            1
+            for e in recent_cycles
+            for a in e["result"].get("applied", [])
+            if a.get("success") and not a.get("rolled_back")
+        )
+        recent_total = sum(
+            len(e["result"].get("applied", [])) for e in recent_cycles
+        )
+
+        early_rate = early_success / max(1, early_total)
+        recent_rate = recent_success / max(1, recent_total)
+        improvement_score = recent_rate - early_rate
+
+        # A 5% gain in success rate is the minimum meaningful signal;
+        # smaller differences are likely due to randomness or small sample sizes.
+        learning_is_effective = improvement_score > 0.05
+
+        if learning_is_effective:
+            recommendation = (
+                "Learning is working. High-reward actions are being preferred more often."
+            )
+        else:
+            recommendation = (
+                "No significant improvement detected. "
+                "Consider adjusting exploration_epsilon or reviewing reward signals."
+            )
+
+        return {
+            "status": "effective" if learning_is_effective else "ineffective",
+            "improvement_score": improvement_score,
+            "early_success_rate": early_rate,
+            "recent_success_rate": recent_rate,
+            "action_trends": {k: dict(v) for k, v in action_trends.items()},
+            "mean_rewards_by_action": {
+                k: v["mean_reward"] for k, v in self.action_stats.items()
+            },
+            "recommendation": recommendation,
+        }
+
     def reset(self):
         """Reset history, stats and metrics."""
         self.improvement_history.clear()
