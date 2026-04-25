@@ -63,6 +63,11 @@ class ImprovementConfig:
     # Action cooldowns (cycles)
     cooldown_cycles: Dict[str, int] = None  # filled in __post_init__
 
+    # Rain cooldown system thresholds
+    rain_fitness_threshold: float = 5.0  # fitness above which "rain" activates
+    rain_memory_threshold: float = 0.70  # memory usage below which "rain" activates
+    rain_cooldown_multiplier: float = 0.6  # cooldown multiplier when raining (0.6 = 40% reduction)
+
     # Memory pruning behavior
     memory_keep_ratio: float = 0.70  # keep top 70% by priority
 
@@ -118,7 +123,8 @@ class SelfImprovementLoop:
     Improvements over the original:
     - Per-action validation + rollback (reversible ops)
     - Learning which actions work (bandit scores)
-    - Cooldowns and guardrails
+    - Adaptive "rain" cooldowns: when the forest is healthy, cooldowns are reduced
+    - Guardrails (validation/rollback) prevent excessive changes
     - More robust metrics + validation scoring
     """
 
@@ -217,6 +223,7 @@ class SelfImprovementLoop:
             "opportunities_found": len(self._find_opportunities(analysis, baseline)),
             "improvements_attempted": len(applied_outcomes),
             "rollbacks": rollbacks,
+            "rain_active": self._is_rain_active(),
             "baseline_metrics": baseline,
             "final_metrics": self.current_metrics,
             "cycle_time_seconds": cycle_time,
@@ -859,9 +866,57 @@ class SelfImprovementLoop:
         if cd > 0:
             self._cooldown_until_cycle[action] = self.cycle_count + cd
 
+    def _get_effective_cooldown(self, action: str) -> int:
+        """
+        Rain analogy: healthy system = faster cooldown recovery.
+
+        When the forest is thriving (good fitness, low memory usage),
+        we can safely reduce cooldown periods - like rain cooling more effectively.
+        """
+        base_cd = self.config.cooldown_cycles.get(action, 0)
+
+        if base_cd == 0:
+            return 0
+
+        # Check system health (is it "raining"?)
+        metrics = self.current_metrics or self._collect_metrics()
+        avg_fitness = metrics.get("average_fitness", 0.0)
+        memory_usage = metrics.get("memory_usage", 1.0)
+
+        # Healthy conditions: good fitness and low memory pressure
+        is_healthy = (
+            avg_fitness > self.config.rain_fitness_threshold
+            and memory_usage < self.config.rain_memory_threshold
+        )
+
+        # Rain effect: reduce cooldown when healthy
+        # Always keep at least 1 cycle to prevent complete removal
+        if is_healthy:
+            return max(1, int(base_cd * self.config.rain_cooldown_multiplier))
+
+        return base_cd
+
+    def _is_rain_active(self) -> bool:
+        """Check if 'rain' conditions are active (healthy system)."""
+        metrics = self.current_metrics or self._collect_metrics()
+        return (
+            metrics.get("average_fitness", 0.0) > self.config.rain_fitness_threshold
+            and metrics.get("memory_usage", 1.0) < self.config.rain_memory_threshold
+        )
+
     def _is_on_cooldown(self, action: str) -> bool:
+        """Check if action is on cooldown, accounting for rain effect."""
         until = self._cooldown_until_cycle.get(action, 0)
-        return self.cycle_count < until
+
+        # Calculate how much cooldown time should be reduced by "rain"
+        base_cd = self.config.cooldown_cycles.get(action, 0)
+        effective_cd = self._get_effective_cooldown(action)
+        rain_reduction = base_cd - effective_cd
+
+        # Apply rain reduction to the cooldown end cycle
+        effective_until = until - rain_reduction
+
+        return self.cycle_count < effective_until
 
     # ----------------------------
     # Helpers
