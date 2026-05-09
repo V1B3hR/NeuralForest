@@ -15,6 +15,7 @@ from typing import Optional
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 
 import networkx as nx
@@ -45,7 +46,7 @@ def mse(y_pred, y_true):
 class PrioritizedMulch:
     """
     Stores experiences with priorities and supports weighted sampling.
-    Item: (x, y, priority)
+    Item: (x, y, priority, features)
     """
 
     def __init__(self, capacity=8000, alpha=0.7, eps=1e-3):
@@ -57,9 +58,10 @@ class PrioritizedMulch:
     def __len__(self):
         return len(self.data)
 
-    def add(self, x, y, priority):
+    def add(self, x, y, priority, features=None):
         p = float(abs(priority) + self.eps)
-        self.data.append((x.detach().cpu(), y.detach().cpu(), p))
+        feat = features.detach().cpu() if features is not None else None
+        self.data.append((x.detach().cpu(), y.detach().cpu(), p, feat))
 
     def sample(self, batch_size, mix_hard=0.6):
         n = len(self.data)
@@ -78,19 +80,37 @@ class PrioritizedMulch:
             probs = probs / probs.sum()
             idx = torch.multinomial(probs, num_samples=hard_n, replacement=(hard_n > n))
             for i in idx.tolist():
-                x, y, _p = self.data[i]
+                x, y, _p, _f = self.data[i]
                 xs.append(x)
                 ys.append(y)
 
         if rand_n > 0:
             batch = random.sample(self.data, rand_n)
-            for x, y, _p in batch:
+            for x, y, _p, _f in batch:
                 xs.append(x)
                 ys.append(y)
 
         batch_x = torch.stack(xs).to(DEVICE)
         batch_y = torch.stack(ys).to(DEVICE)
         return batch_x, batch_y
+
+    def sample_features(self, batch_size: int) -> Optional[torch.Tensor]:
+        """
+        Return a feature sample from mulch, weighted by priority.
+        """
+        available = [item for item in self.data if item[3] is not None]
+        if len(available) < batch_size:
+            return None
+
+        weights = torch.tensor([item[2] for item in available], dtype=torch.float32)
+        weights = weights / weights.sum()
+        idx = torch.multinomial(
+            weights,
+            num_samples=min(batch_size, len(available)),
+            replacement=False,
+        )
+        chosen = [available[i] for i in idx.tolist()]
+        return torch.stack([item[3] for item in chosen])
 
 
 class AnchorCoreset:
@@ -514,7 +534,7 @@ class ForestEcosystem(nn.Module):
                 }
             )
 
-        mulch_data = [(x, y, p) for x, y, p in self.mulch.data]
+        mulch_data = [(x, y, p, feat) for x, y, p, feat in self.mulch.data]
         anchor_data = [(x, y) for x, y in self.anchors.data]
         graph_edges = list(self.graph.edges(data=True))
 
@@ -585,8 +605,14 @@ class ForestEcosystem(nn.Module):
         forest.mulch = PrioritizedMulch(
             capacity=checkpoint["mulch_capacity"], alpha=checkpoint["mulch_alpha"]
         )
-        for x, y, p in checkpoint["mulch_data"]:
-            forest.mulch.add(x.to(device), y.to(device), p)
+        for item in checkpoint["mulch_data"]:
+            if len(item) == 4:
+                x, y, p, feat = item
+                feat = feat.to(device) if feat is not None else None
+            else:
+                x, y, p = item
+                feat = None
+            forest.mulch.add(x.to(device), y.to(device), p, features=feat)
 
         forest.anchors = AnchorCoreset(capacity=checkpoint["anchor_capacity"])
         for x, y in checkpoint["anchor_data"]:
@@ -760,8 +786,16 @@ def train_step(
     # store experiences
     with torch.no_grad():
         per_ex = (y_pred - y_batch).pow(2).view(len(x_batch), -1).mean(dim=1)
+        best_trees = sorted(forest.trees, key=lambda t: t.fitness, reverse=True)[:3]
         for i in range(len(x_batch)):
-            forest.mulch.add(x_batch[i], y_batch[i], priority=per_ex[i].item())
+            feats = [tree.trunk(x_batch[i : i + 1]).squeeze(0) for tree in best_trees]
+            deposited_feat = torch.stack(feats).mean(dim=0) if feats else None
+            forest.mulch.add(
+                x_batch[i],
+                y_batch[i],
+                priority=per_ex[i].item(),
+                features=deposited_feat,
+            )
             forest.anchors.add(x_batch[i], y_batch[i])
 
     # replay
@@ -791,11 +825,30 @@ def train_step(
             teacher_y = forest.teacher_snapshot(x_batch, top_k=top_k)
         loss_distill = mse(y_pred, teacher_y)
 
+    # Litter absorption — young trees absorb feature litter
+    loss_litter = torch.tensor(0.0, device=DEVICE)
+    young_trees = [t for t in forest.trees if t.age < 20]
+    if young_trees:
+        litter_features = forest.mulch.sample_features(batch_size=len(x_batch))
+        if litter_features is not None:
+            litter_features = litter_features.to(DEVICE)
+            count = 0
+            for young_tree in young_trees:
+                young_feat = young_tree.trunk(x_batch[: len(litter_features)])
+                if young_feat.shape == litter_features.shape:
+                    loss_litter = loss_litter + F.mse_loss(
+                        young_feat, litter_features.detach()
+                    )
+                    count += 1
+            if count > 0:
+                loss_litter = loss_litter / count
+
     total_loss = (
         loss_current
         + 0.7 * loss_replay
         + 0.6 * loss_anchor
         + distill_weight * loss_distill
+        + 0.3 * loss_litter
     )
     total_loss.backward()
 
@@ -810,6 +863,7 @@ def train_step(
         "loss_replay": float(loss_replay.item()),
         "loss_anchor": float(loss_anchor.item()),
         "loss_distill": float(loss_distill.item()),
+        "loss_litter": float(loss_litter.item()),
         "loss_total": float(total_loss.item()),
         "trees": forest.num_trees(),
         "fitness_mean": float(

@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from groves import VisualGrove, AudioGrove, TextGrove
 from groves.base_grove import SpecialistTree
-from mycelium import MyceliumNetwork, KnowledgeTransfer
+from mycelium import KnowledgeTransfer
 
 
 class TestSpecialistTree(unittest.TestCase):
@@ -110,45 +110,37 @@ class TestGrove(unittest.TestCase):
         self.assertEqual(stats["modality"], "text")
 
 
-class TestMyceliumNetwork(unittest.TestCase):
-    """Test MyceliumNetwork functionality."""
+class TestLitterAbsorption(unittest.TestCase):
+    """Test litter absorption via PrioritizedMulch."""
 
-    def test_mycelium_creation(self):
-        """Test creating mycelium network."""
-        mycelium = MyceliumNetwork(num_groves=4)
+    def test_litter_absorption_loss_empty_mulch(self):
+        """Returns zero loss when mulch has no features."""
 
-        self.assertEqual(mycelium.num_groves, 4)
+        class MockMulch:
+            pass
 
-    def test_connect_trees(self):
-        """Test connecting trees."""
-        mycelium = MyceliumNetwork(num_groves=4)
+        student_features = torch.randn(4, 64)
+        loss = KnowledgeTransfer.litter_absorption_loss(
+            student_features, MockMulch(), batch_size=4
+        )
+        self.assertEqual(loss.item(), 0.0)
 
-        mycelium.connect(0, 1, strength=0.8)
+    def test_litter_absorption_loss_with_features(self):
+        """Returns valid loss when mulch has features."""
+        from NeuralForest import PrioritizedMulch
 
-        connections = mycelium.get_connections(0)
-        self.assertIn(1, connections)
+        mulch = PrioritizedMulch(capacity=100)
+        for _ in range(20):
+            x = torch.randn(4)
+            y = torch.randn(1)
+            feat = torch.randn(64)
+            mulch.add(x, y, priority=1.0, features=feat)
 
-        strength = mycelium.get_strength(0, 1)
-        self.assertAlmostEqual(strength, 0.8, places=5)
-
-    def test_knowledge_transfer(self):
-        """Test knowledge transfer between trees."""
-        mycelium = MyceliumNetwork(num_groves=4)
-
-        teacher = SpecialistTree(512, 64, 0, "classification", "image")
-        student = SpecialistTree(512, 64, 1, "classification", "image")
-
-        # Age teacher
-        for _ in range(100):
-            teacher.step_age()
-
-        mycelium.connect(teacher.id, student.id, strength=0.8)
-
-        x = torch.randn(4, 512)
-        loss = mycelium.transfer_knowledge(teacher, student, x)
+        student_features = torch.randn(4, 64)
+        loss = KnowledgeTransfer.litter_absorption_loss(student_features, mulch, batch_size=4)
 
         self.assertIsInstance(loss, torch.Tensor)
-        self.assertGreater(loss.item(), 0)
+        self.assertGreaterEqual(loss.item(), 0.0)
 
 
 class TestKnowledgeTransfer(unittest.TestCase):

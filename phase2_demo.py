@@ -15,7 +15,7 @@ from groves import VisualGrove, AudioGrove, TextGrove, VideoGrove
 from groves.base_grove import SpecialistTree
 
 # Import mycelium for knowledge transfer
-from mycelium import MyceliumNetwork, KnowledgeTransfer
+from mycelium import KnowledgeTransfer
 
 
 def demo_visual_grove():
@@ -137,57 +137,25 @@ def demo_specialist_planting():
 
 
 def demo_mycelium_network():
-    """Demo mycelium network for knowledge transfer."""
-    print("\n=== Mycelium Network Demo ===")
+    """Demo litter absorption for passive knowledge transfer."""
+    print("\n=== Forest Litter Demo ===")
 
-    # Create a grove with multiple trees
-    grove = VisualGrove(input_dim=512, hidden_dim=64, max_trees=8)
+    from NeuralForest import PrioritizedMulch
 
-    # Plant additional trees
-    grove.plant_specialist("object_detection")
-    grove.plant_specialist("segmentation")
+    mulch = PrioritizedMulch(capacity=100)
+    for _ in range(20):
+        x = torch.randn(4)
+        y = torch.randn(1)
+        feat = torch.randn(64)
+        mulch.add(x, y, priority=1.0, features=feat)
 
-    # Create mycelium network
-    mycelium = MyceliumNetwork(num_groves=4)
+    student_features = torch.randn(4, 64)
+    loss = KnowledgeTransfer.litter_absorption_loss(student_features, mulch, batch_size=4)
 
-    # Connect trees
-    trees = list(grove.trees)
-    if len(trees) >= 2:
-        # Connect trees with similar specializations
-        for i in range(len(trees) - 1):
-            mycelium.connect(trees[i].id, trees[i + 1].id, strength=0.8)
+    print(f"Litter absorption loss: {loss.item():.4f}")
+    print("✅ Forest litter demo successful!")
 
-        print(f"Created mycelium connections between {len(trees)} trees")
-
-        # Simulate knowledge transfer
-        batch_size = 4
-        x = torch.randn(batch_size, 512)
-
-        # Transfer from first tree (teacher) to second tree (student)
-        teacher = trees[0]
-        student = trees[1]
-
-        # Artificially age the teacher
-        for _ in range(100):
-            teacher.step_age()
-
-        transfer_loss = mycelium.transfer_knowledge(teacher, student, x)
-
-        print("\nKnowledge Transfer:")
-        print(f"  Teacher tree ID: {teacher.id} (age: {teacher.age})")
-        print(f"  Student tree ID: {student.id} (age: {student.age})")
-        print(f"  Transfer loss: {transfer_loss.item():.4f}")
-
-        # Get network statistics
-        stats = mycelium.get_network_stats()
-        print("\nMycelium Network Statistics:")
-        print(f"  Number of trees: {stats['num_trees']}")
-        print(f"  Total connections: {stats['total_connections']}")
-        print(f"  Avg connections per tree: {stats['avg_connections_per_tree']:.2f}")
-
-    print("✅ Mycelium network demo successful!")
-
-    return mycelium
+    return loss
 
 
 def demo_knowledge_transfer_methods():

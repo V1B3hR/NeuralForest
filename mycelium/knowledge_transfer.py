@@ -1,125 +1,20 @@
 """
-Mycelium Network: Underground network connecting trees for knowledge transfer.
-Inspired by real forest mycorrhizal networks.
+Forest Litter: Passive, decentralized knowledge transfer through shared features.
 
-Functions:
-- Share useful gradients between related trees
-- Transfer knowledge from mature to young trees
-- Enable cross-grove communication
+Trees "drop" representations into PrioritizedMulch (forest litter).
+Young trees absorb these features passively during training, without explicit links.
+
+KnowledgeTransfer: static mathematical tools for knowledge transfer.
+  - distillation_loss: KL-divergence distillation (Hinton et al.)
+  - feature_alignment_loss: cosine similarity with margin
+  - gradient_sharing: gradient blending between trees
+  - progressive_knowledge_transfer: transfer from multiple teachers
+  - litter_absorption_loss: feature litter absorption from PrioritizedMulch
 """
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from collections import defaultdict
 from typing import Optional, Dict, List
-
-
-class MyceliumNetwork(nn.Module):
-    """
-    Underground network connecting trees for knowledge transfer.
-    Manages connections and knowledge flow between trees.
-    """
-
-    def __init__(self, num_groves: int = 4):
-        super().__init__()
-        self.num_groves = num_groves
-        self.connections = defaultdict(list)
-        self.transfer_strength = nn.ParameterDict()
-
-    def connect(self, tree_a_id: int, tree_b_id: int, strength: float = 1.0):
-        """
-        Establish mycelium connection between trees.
-
-        Args:
-            tree_a_id: ID of first tree
-            tree_b_id: ID of second tree
-            strength: Connection strength (0.0 to 1.0)
-        """
-        key_ab = f"{tree_a_id}_{tree_b_id}"
-        key_ba = f"{tree_b_id}_{tree_a_id}"
-
-        # Bidirectional connection
-        if tree_b_id not in self.connections[tree_a_id]:
-            self.connections[tree_a_id].append(tree_b_id)
-        if tree_a_id not in self.connections[tree_b_id]:
-            self.connections[tree_b_id].append(tree_a_id)
-
-        # Store connection strengths as learnable parameters
-        self.transfer_strength[key_ab] = nn.Parameter(
-            torch.tensor(strength, dtype=torch.float32)
-        )
-        self.transfer_strength[key_ba] = nn.Parameter(
-            torch.tensor(strength, dtype=torch.float32)
-        )
-
-    def get_connections(self, tree_id: int) -> List[int]:
-        """Get all trees connected to the given tree."""
-        return self.connections.get(tree_id, [])
-
-    def get_strength(self, source_id: int, target_id: int) -> float:
-        """Get connection strength between two trees."""
-        key = f"{source_id}_{target_id}"
-        if key in self.transfer_strength:
-            return self.transfer_strength[key].item()
-        return 0.0
-
-    def transfer_knowledge(
-        self, source_tree, target_tree, x: torch.Tensor
-    ) -> torch.Tensor:
-        """
-        Soft knowledge transfer via feature alignment.
-        Mature trees help young trees learn faster.
-
-        Args:
-            source_tree: Tree providing knowledge
-            target_tree: Tree receiving knowledge
-            x: Input data
-
-        Returns:
-            alignment_loss: Loss encouraging similar representations
-        """
-        # Get features from both trees
-        with torch.no_grad():
-            source_features = (
-                source_tree.get_features(x)
-                if hasattr(source_tree, "get_features")
-                else source_tree.trunk(source_tree.act(x))
-            )
-
-        target_features = (
-            target_tree.get_features(x)
-            if hasattr(target_tree, "get_features")
-            else target_tree.trunk(target_tree.act(x))
-        )
-
-        # Alignment loss encourages similar representations
-        alignment_loss = F.mse_loss(target_features, source_features.detach())
-
-        # Weight by connection strength and age difference
-        age_factor = max(0, source_tree.age - target_tree.age) / 100.0
-        age_factor = min(age_factor, 1.0)  # Cap at 1.0
-
-        key = f"{source_tree.id}_{target_tree.id}"
-        strength = self.transfer_strength.get(key, torch.tensor(1.0)).item()
-
-        # Combined weighting
-        weighted_loss = alignment_loss * strength * (0.5 + 0.5 * age_factor)
-
-        return weighted_loss
-
-    def get_network_stats(self) -> Dict:
-        """Return statistics about the mycelium network."""
-        total_connections = sum(len(conns) for conns in self.connections.values()) // 2
-
-        return {
-            "num_trees": len(self.connections),
-            "total_connections": total_connections,
-            "avg_connections_per_tree": total_connections
-            * 2
-            / max(len(self.connections), 1),
-            "connection_details": dict(self.connections),
-        }
 
 
 class KnowledgeTransfer:
@@ -254,3 +149,24 @@ class KnowledgeTransfer:
             total_loss += weight * loss
 
         return total_loss
+
+    @staticmethod
+    def litter_absorption_loss(
+        student_features: torch.Tensor,
+        mulch,
+        batch_size: int = 16,
+    ) -> torch.Tensor:
+        """
+        Litter absorption: student learns from accumulated feature representations.
+        Facade over PrioritizedMulch.sample_features().
+        """
+        if not hasattr(mulch, "sample_features"):
+            return torch.tensor(0.0)
+
+        litter = mulch.sample_features(batch_size)
+        if litter is None:
+            return torch.tensor(0.0)
+
+        litter = litter.to(student_features.device)
+        min_len = min(len(student_features), len(litter))
+        return F.mse_loss(student_features[:min_len], litter[:min_len].detach())
