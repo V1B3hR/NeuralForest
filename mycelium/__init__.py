@@ -1,11 +1,9 @@
 """
-Mycelium module: Inter-tree communication and knowledge transfer.
-Inspired by real forest mycorrhizal networks.
+Mycelium module: Forest litter knowledge transfer utilities.
 """
 
-from .knowledge_transfer import MyceliumNetwork, KnowledgeTransfer
+from .knowledge_transfer import KnowledgeTransfer
 
 __all__ = [
-    "MyceliumNetwork",
     "KnowledgeTransfer",
 ]
