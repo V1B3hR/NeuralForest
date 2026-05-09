@@ -96,7 +96,7 @@ class PrioritizedMulch:
 
     def sample_features(self, batch_size: int) -> Optional[torch.Tensor]:
         """
-        Zwraca próbkę reprezentacji ze ściółki, ważoną priorytetem.
+        Return a feature sample from mulch, weighted by priority.
         """
         available = [item for item in self.data if item[3] is not None]
         if len(available) < batch_size:

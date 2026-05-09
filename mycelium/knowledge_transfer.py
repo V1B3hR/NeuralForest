@@ -1,15 +1,15 @@
 """
-Forest Litter: Pasywny, zdecentralizowany transfer wiedzy przez ściółkę cech.
+Forest Litter: Passive, decentralized knowledge transfer through shared features.
 
-Drzewa "opadają" reprezentacjami do PrioritizedMulch (ściółka).
-Młode drzewa wchłaniają je pasywnie podczas treningu — bez jawnych połączeń.
+Trees "drop" representations into PrioritizedMulch (forest litter).
+Young trees absorb these features passively during training, without explicit links.
 
-KnowledgeTransfer: statyczne narzędzia matematyczne dla transferu wiedzy.
+KnowledgeTransfer: static mathematical tools for knowledge transfer.
   - distillation_loss: KL-divergence distillation (Hinton et al.)
-  - feature_alignment_loss: cosine similarity z marginesem
-  - gradient_sharing: blending gradientów między drzewami
-  - progressive_knowledge_transfer: transfer od wielu nauczycieli
-  - litter_absorption_loss: wchłanianie ściółki z PrioritizedMulch
+  - feature_alignment_loss: cosine similarity with margin
+  - gradient_sharing: gradient blending between trees
+  - progressive_knowledge_transfer: transfer from multiple teachers
+  - litter_absorption_loss: feature litter absorption from PrioritizedMulch
 """
 
 import torch
@@ -157,8 +157,8 @@ class KnowledgeTransfer:
         batch_size: int = 16,
     ) -> torch.Tensor:
         """
-        Wchłanianie ściółki — student uczy się od zakumulowanych reprezentacji w mulch.
-        Fasada nad PrioritizedMulch.sample_features().
+        Litter absorption: student learns from accumulated feature representations.
+        Facade over PrioritizedMulch.sample_features().
         """
         if not hasattr(mulch, "sample_features"):
             return torch.tensor(0.0)
