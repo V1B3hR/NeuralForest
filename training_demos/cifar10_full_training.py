@@ -4,6 +4,7 @@ import json
 import time
 import argparse
 import random
+from collections import deque
 from pathlib import Path
 import traceback
 
@@ -26,14 +27,10 @@ def set_seed(seed=42):
 # ==================== MULCH ====================
 class PrioritizedMulch:
     def __init__(self, capacity=2000):
-        self.buffer = []
+        self.buffer = deque(maxlen=capacity)
         self.capacity = capacity
     def add(self, x, y, priority):
-        if len(self.buffer) < self.capacity:
-            self.buffer.append((x.detach().cpu(), y.detach().cpu(), priority))
-        else:
-            self.buffer.pop(0)
-            self.buffer.append((x.detach().cpu(), y.detach().cpu(), priority))
+        self.buffer.append((x.detach().cpu(), y.detach().cpu(), priority))
     def __len__(self):
         return len(self.buffer)
 
@@ -57,23 +54,22 @@ class TreeNet(nn.Module):
         layers = []
         last_dim = input_dim
         for i in range(arch.num_layers):
-    layers.append(nn.Linear(last_dim, arch.hidden_dim))
-    if arch.normalization == 'layer':
-        layers.append(nn.LayerNorm(arch.hidden_dim))
-    if arch.normalization == 'batch':
-        layers.append(nn.BatchNorm1d(arch.hidden_dim))
-    # Dodaj poprawny moduł aktywacji:
-    if arch.activation == 'relu':
-        layers.append(nn.ReLU())
-    elif arch.activation == 'tanh':
-        layers.append(nn.Tanh())
-    elif arch.activation == 'gelu':
-        layers.append(nn.GELU())
-    else:
-        layers.append(nn.ReLU())  # domyślna aktywacja
-    if arch.dropout > 0:
-        layers.append(nn.Dropout(arch.dropout))
-    last_dim = arch.hidden_dim
+            layers.append(nn.Linear(last_dim, arch.hidden_dim))
+            if arch.normalization == 'layer':
+                layers.append(nn.LayerNorm(arch.hidden_dim))
+            if arch.normalization == 'batch':
+                layers.append(nn.BatchNorm1d(arch.hidden_dim))
+            if arch.activation == 'relu':
+                layers.append(nn.ReLU())
+            elif arch.activation == 'tanh':
+                layers.append(nn.Tanh())
+            elif arch.activation == 'gelu':
+                layers.append(nn.GELU())
+            else:
+                layers.append(nn.ReLU())
+            if arch.dropout > 0:
+                layers.append(nn.Dropout(arch.dropout))
+            last_dim = arch.hidden_dim
         self.net = nn.Sequential(*[l for l in layers if callable(l) or isinstance(l, nn.Module)])
         self.out = nn.Linear(last_dim, 1)
         self.epoch_age = 0
@@ -210,6 +206,16 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+def rebuild_task_head(forest, args, device):
+    task_head_input_dim = forest.num_trees() * args.output_dim_per_tree
+    return EnhancedTaskHead(
+        input_dim=task_head_input_dim,
+        hidden_dim=256,
+        num_classes=10,
+        dropout=0.3,
+        activation='relu'
+    ).to(device)
+
 def main():
     args = parse_args()
     set_seed(42)
@@ -244,18 +250,14 @@ def main():
     for tree in forest.trees:
         tree.epoch_age = 0
 
-    task_head_input_dim = forest.num_trees() * args.output_dim_per_tree
-    task_head = EnhancedTaskHead(
-        input_dim=task_head_input_dim,
-        hidden_dim=256,
-        num_classes=10,
-        dropout=0.3,
-        activation='relu'
-    ).to(device)
+    task_head = rebuild_task_head(forest, args, device)
 
-    optimizer = torch.optim.Adam(
-        list(forest.parameters()) + list(task_head.parameters()), lr=0.001, weight_decay=5e-4
-    )
+    def build_optimizer():
+        return torch.optim.Adam(
+            list(forest.parameters()) + list(task_head.parameters()), lr=0.001, weight_decay=5e-4
+        )
+
+    optimizer = build_optimizer()
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.6)
     criterion = nn.CrossEntropyLoss()
     metrics_tracker = MetricsTracker()
@@ -358,6 +360,9 @@ def main():
             if weak_trees and arch_diversity > 2:
                 num_to_prune = min(3, len(weak_trees))
                 forest._prune_trees(weak_trees[:num_to_prune], min_keep=3)
+                task_head = rebuild_task_head(forest, args, device)
+                optimizer = build_optimizer()
+                scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.6)
                 print(f"Pruned {num_to_prune} weak trees (arch.div:{arch_diversity})")
         # Planting new trees for diversity
         if ((epoch % 13 == 0 and forest.num_trees() < args.max_trees) or arch_diversity <= 2):
@@ -370,6 +375,9 @@ def main():
                 residual=False
             )
             forest._plant_tree(arch)
+            task_head = rebuild_task_head(forest, args, device)
+            optimizer = build_optimizer()
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.6)
             print(f"Planted new tree (total: {forest.num_trees()}, arch.div: {min_arch_diversity(forest)})")
 
         scheduler.step()

@@ -808,6 +808,8 @@ class EcosystemSimulator:
             
             after = self.forest.num_trees()
             pruned = before - after
+            if pruned > 0:
+                self.optimizer = optim.Adam(self.forest.parameters(), lr=self.learning_rate)
             
             # Update stats
             self.current_stats. trees_pruned = pruned
