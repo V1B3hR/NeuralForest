@@ -812,7 +812,7 @@ class EcosystemSimulator:
                 self.optimizer = optim.Adam(self.forest.parameters(), lr=self.learning_rate)
             
             # Update stats
-            self.current_stats. trees_pruned = pruned
+            self.current_stats.trees_pruned = pruned
             self.current_stats.selection_rate = selection_rate
             
             return pruned
