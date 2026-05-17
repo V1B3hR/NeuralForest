@@ -32,7 +32,6 @@ def set_seed(seed=42):
     torch.cuda.manual_seed_all(seed)
 
 
-set_seed(7)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -273,7 +272,8 @@ class TreeExpert(nn.Module):
             self.bark = min(0.985, self.bark + 0.01)
 
     def update_fitness(self, loss_value):
-        reward = 1.0 / (float(loss_value) + 1e-4)
+        reward = 10.0 / (float(loss_value) + 0.1)
+        reward = min(reward, 10.0)
         self.fitness = 0.97 * self.fitness + 0.03 * reward
 
 
@@ -519,7 +519,9 @@ class ForestEcosystem(nn.Module):
     def save_checkpoint(self, path):
         import os
 
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        dir_name = os.path.dirname(path)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
 
         tree_states = []
         for t in self.trees:
@@ -562,7 +564,7 @@ class ForestEcosystem(nn.Module):
         if device is None:
             device = DEVICE
 
-        checkpoint = torch.load(path, map_location=device)
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
 
         forest = cls(
             input_dim=checkpoint["input_dim"],
@@ -637,17 +639,19 @@ class ForestTeacher(nn.Module):
         super().__init__()
         self.input_dim = forest.input_dim
         self.max_trees = forest.max_trees
+        first_param = next(forest.parameters(), None)
+        device = first_param.device if first_param is not None else DEVICE
 
         self.router = GatingRouter(
             self.input_dim, max_trees=self.max_trees, hidden=32
-        ).to(DEVICE)
+        ).to(device)
         self.router.load_state_dict(
             {k: v.detach().clone() for k, v in forest.router.state_dict().items()}
         )
 
         self.trees = nn.ModuleList()
         for t in forest.trees:
-            nt = TreeExpert(self.input_dim, t.id, t.arch).to(DEVICE)
+            nt = TreeExpert(self.input_dim, t.id, t.arch).to(device)
             nt.load_state_dict(
                 {k: v.detach().clone() for k, v in t.state_dict().items()}
             )
@@ -835,9 +839,12 @@ def train_step(
             count = 0
             for young_tree in young_trees:
                 young_feat = young_tree.trunk(x_batch[: len(litter_features)])
-                if young_feat.shape == litter_features.shape:
+                min_batch = min(young_feat.shape[0], litter_features.shape[0])
+                yf = young_feat[:min_batch]
+                lf = litter_features[:min_batch]
+                if yf.shape[1] == lf.shape[1]:
                     loss_litter = loss_litter + F.mse_loss(
-                        young_feat, litter_features.detach()
+                        yf, lf.detach()
                     )
                     count += 1
             if count > 0:
@@ -937,11 +944,6 @@ def visualize(forest: ForestEcosystem, X, Y_true, step, stats):
 # ----------------------------
 # 9) Demo loop (nonstationary stream)
 # ----------------------------
-N = 240
-X = torch.linspace(0, 10, N).reshape(-1, 1)
-X_plot = torch.linspace(0, 10, 250).reshape(-1, 1)
-
-
 def target_function(x, t):
     amp = 1.0 + 0.4 * math.sin(t * 0.03)
     phase = 0.5 * math.sin(t * 0.015)
@@ -950,6 +952,11 @@ def target_function(x, t):
 
 
 if __name__ == "__main__":
+    set_seed(7)
+    N = 240
+    X = torch.linspace(0, 10, N).reshape(-1, 1)
+    X_plot = torch.linspace(0, 10, 250).reshape(-1, 1)
+
     forest = ForestEcosystem(input_dim=1, hidden_dim=32, max_trees=24).to(DEVICE)
     steward = Steward(forest)
 

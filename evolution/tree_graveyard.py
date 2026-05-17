@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import time
+import tempfile
 from collections import deque, defaultdict
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
@@ -113,9 +114,10 @@ class TreeGraveyard:
         """
         self.max_records = max_records
         self.save_weights = save_weights
-        self.weights_dir = Path(weights_dir) if weights_dir else Path("/tmp/graveyard_weights")
+        tmp_dir = Path(tempfile.gettempdir())
+        self.weights_dir = Path(weights_dir) if weights_dir else tmp_dir / "graveyard_weights"
         self.auto_save = auto_save
-        self.save_path = Path(save_path) if save_path else Path("/tmp/tree_graveyard.json")
+        self.save_path = Path(save_path) if save_path else tmp_dir / "tree_graveyard.json"
         
         # Storage
         self.records: deque[TreeRecord] = deque(maxlen=max_records)
