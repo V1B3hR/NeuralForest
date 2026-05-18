@@ -44,8 +44,13 @@ class TestBugfixRegressions(unittest.TestCase):
         mulch.add(x, y, 2.0)
         mulch.add(x, y, 3.0)
         self.assertEqual(len(mulch), 2)
+        # The oldest entry (priority≈1.0) should have been evicted; the two
+        # remaining entries should have priorities ≈ 2.0 and ≈ 3.0.  We use
+        # assertAlmostEqual because PrioritizedMulch adds a small epsilon for
+        # numerical stability.
         priorities = [item[2] for item in mulch.buffer]
-        self.assertEqual(priorities, [2.0, 3.0])
+        self.assertAlmostEqual(priorities[0], 2.0, delta=0.01)
+        self.assertAlmostEqual(priorities[1], 3.0, delta=0.01)
 
     def test_rebuild_task_head_tracks_tree_count(self):
         forest = ForestEcosystem(input_dim=4, max_trees=5)

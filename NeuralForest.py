@@ -54,6 +54,11 @@ class PrioritizedMulch:
         self.eps = eps
         self.data = deque(maxlen=capacity)
 
+    @property
+    def buffer(self):
+        """Backward-compat alias for ``self.data``."""
+        return self.data
+
     def __len__(self):
         return len(self.data)
 
@@ -156,16 +161,56 @@ class AnchorCoreset:
 # 2) Routing / gating
 # ----------------------------
 class GatingRouter(nn.Module):
-    def __init__(self, input_dim, max_trees, hidden=32):
+    def __init__(self, input_dim, max_trees, hidden=32, balance_coeff=0.01):
         super().__init__()
         self.max_trees = max_trees
+        self.balance_coeff = balance_coeff
         self.net = nn.Sequential(
             nn.Linear(input_dim, hidden), nn.Tanh(), nn.Linear(hidden, max_trees)
         )
+        # EMA utilization histogram — one slot per possible tree (no-grad buffer)
+        self.register_buffer("utilization_ema", torch.zeros(max_trees))
+        self._ema_alpha = 0.01  # slow-moving so monitoring is stable
 
     def forward(self, x, num_trees):
         scores = self.net(x)[:, :num_trees]  # [B, T]
         return scores
+
+    def balance_loss(self, routing_weights):
+        """KL(p_router || uniform) load-balancing auxiliary loss.
+
+        Args:
+            routing_weights: ``[B, T]`` soft routing weights (post-softmax).
+
+        Returns:
+            Scalar tensor — zero when all trees receive equal traffic.
+        """
+        mean_w = routing_weights.mean(dim=0)  # [T]
+        T = mean_w.shape[0]
+        uniform = torch.ones_like(mean_w) / T
+        eps = 1e-8
+        kl = (mean_w * (torch.log(mean_w + eps) - torch.log(uniform + eps))).sum()
+        return kl
+
+    @torch.no_grad()
+    def update_utilization(self, routing_weights):
+        """Update EMA utilization histogram for expert-utilization monitoring."""
+        mean_usage = routing_weights.mean(dim=0)  # [T]
+        T = mean_usage.shape[0]
+        self.utilization_ema[:T] = (
+            (1 - self._ema_alpha) * self.utilization_ema[:T]
+            + self._ema_alpha * mean_usage
+        )
+
+    def get_utilization_stats(self, num_trees):
+        """Return a dict with per-tree EMA utilization and summary stats."""
+        utils = self.utilization_ema[:num_trees]
+        return {
+            "utilization": utils.tolist(),
+            "min": float(utils.min()),
+            "max": float(utils.max()),
+            "std": float(utils.std()),
+        }
 
 
 def topk_softmax(scores, k):
@@ -234,6 +279,7 @@ class TreeExpert(nn.Module):
         self.age = 0
         self.bark = 0.0
         self.fitness = 5.0
+        self._ema_loss = None  # EMA baseline for improvement-relative fitness
 
         # Build MLP trunk
         layers = []
@@ -272,9 +318,25 @@ class TreeExpert(nn.Module):
             self.bark = min(0.985, self.bark + 0.01)
 
     def update_fitness(self, loss_value):
-        reward = 10.0 / (float(loss_value) + 0.1)
+        loss_f = float(loss_value)
+
+        # ── EMA baseline: tracks long-run average loss for this tree ──────────
+        if self._ema_loss is None:
+            self._ema_loss = loss_f
+        else:
+            self._ema_loss = 0.95 * self._ema_loss + 0.05 * loss_f
+
+        # ── Bounded, scaled reward (same as before) ────────────────────────────
+        reward = 10.0 / (loss_f + 0.1)
         reward = min(reward, 10.0)
-        self.fitness = 0.97 * self.fitness + 0.03 * reward
+
+        # ── Improvement bonus: reward improvement over EMA baseline ───────────
+        # Positive when current loss < EMA baseline (tree is getting better).
+        improvement = (self._ema_loss - loss_f) / (self._ema_loss + 1e-6)
+        improvement_bonus = max(0.0, improvement) * 3.0
+        combined = min(reward + improvement_bonus, 10.0)
+
+        self.fitness = 0.97 * self.fitness + 0.03 * combined
 
 
 # ----------------------------
@@ -295,7 +357,11 @@ class ForestEcosystem(nn.Module):
         self.anchors = AnchorCoreset(capacity=256)
 
         self.tree_counter = 0
-        
+
+        # Topology version — incremented on every plant or prune so that
+        # external task heads can detect structural changes and rebuild.
+        self.topology_version = 0
+
         # Tree Graveyard for Phase 3b: Legacy & Memory Management
         self.enable_graveyard = enable_graveyard
         if enable_graveyard:
@@ -367,6 +433,7 @@ class ForestEcosystem(nn.Module):
                 self.graph.add_edge(new_tree.id, best.id, weight=2.0)
 
         self.tree_counter += 1
+        self.topology_version += 1
 
     def _prune_trees(self, ids_to_remove, min_keep=2, reason="low_fitness", resource_history=None):
         """
@@ -415,6 +482,9 @@ class ForestEcosystem(nn.Module):
         for rid in removed_ids:
             if self.graph.has_node(rid):
                 self.graph.remove_node(rid)
+
+        if removed_ids:
+            self.topology_version += 1
     
     def resurrect_tree(self, tree_id: Optional[int] = None, min_fitness: float = 3.0):
         """
@@ -672,8 +742,71 @@ class ForestTeacher(nn.Module):
 
 
 # ----------------------------
-# 5) Steward (meta-controller)
+# 4b) Topology-aware task head
 # ----------------------------
+class AdaptiveTaskHead(nn.Module):
+    """
+    Topology-aware task head that auto-rebuilds when the forest tree count changes.
+
+    On every forward pass the head checks whether ``forest.topology_version``
+    has changed since it was last built; if so it silently rebuilds its linear
+    layers to match the new input dimension before running the forward pass.
+    This prevents dimension mismatches after prune / plant operations.
+
+    Args:
+        forest: The ``ForestEcosystem`` instance this head is attached to.
+        num_classes: Number of output classes / regression outputs.
+        hidden_dim: Width of the single hidden layer (default 128).
+        output_dim_per_tree: Feature dimension contributed by each tree
+            (must match however ``forward_forest`` produces features, default 1).
+        dropout: Dropout rate (default 0.0).
+    """
+
+    def __init__(
+        self,
+        forest: "ForestEcosystem",
+        num_classes: int,
+        hidden_dim: int = 128,
+        output_dim_per_tree: int = 1,
+        dropout: float = 0.0,
+    ):
+        super().__init__()
+        self._forest = forest
+        self._num_classes = num_classes
+        self._hidden_dim = hidden_dim
+        self._output_dim_per_tree = output_dim_per_tree
+        self._dropout_rate = dropout
+        self._last_topology = forest.topology_version
+        self._build()
+
+    # ------------------------------------------------------------------
+    def _get_device(self):
+        first_param = next(self._forest.parameters(), None)
+        return first_param.device if first_param is not None else DEVICE
+
+    def _build(self):
+        in_dim = self._forest.num_trees() * self._output_dim_per_tree
+        device = self._get_device()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, self._hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(self._dropout_rate),
+            nn.Linear(self._hidden_dim, self._num_classes),
+        ).to(device)
+        self._last_topology = self._forest.topology_version
+
+    def _maybe_rebuild(self):
+        """Rebuild layers if the forest topology has changed."""
+        if self._forest.topology_version != self._last_topology:
+            self._build()
+
+    # ------------------------------------------------------------------
+    def forward(self, x):
+        self._maybe_rebuild()
+        return self.net(x)
+
+
+
 class Steward:
     def __init__(self, forest: ForestEcosystem):
         self.forest = forest
@@ -850,12 +983,17 @@ def train_step(
             if count > 0:
                 loss_litter = loss_litter / count
 
+    # router balance loss — penalises unequal expert utilisation
+    loss_balance = forest.router.balance_coeff * forest.router.balance_loss(weights)
+    forest.router.update_utilization(weights.detach())
+
     total_loss = (
         loss_current
         + 0.7 * loss_replay
         + 0.6 * loss_anchor
         + distill_weight * loss_distill
         + 0.3 * loss_litter
+        + loss_balance
     )
     total_loss.backward()
 
@@ -871,6 +1009,7 @@ def train_step(
         "loss_anchor": float(loss_anchor.item()),
         "loss_distill": float(loss_distill.item()),
         "loss_litter": float(loss_litter.item()),
+        "loss_balance": float(loss_balance.item()),
         "loss_total": float(total_loss.item()),
         "trees": forest.num_trees(),
         "fitness_mean": float(
