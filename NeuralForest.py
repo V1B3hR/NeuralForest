@@ -806,7 +806,9 @@ class AdaptiveTaskHead(nn.Module):
         return self.net(x)
 
 
-
+# ----------------------------
+# 5) Steward (meta-controller)
+# ----------------------------
 class Steward:
     def __init__(self, forest: ForestEcosystem):
         self.forest = forest
