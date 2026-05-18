@@ -23,7 +23,8 @@ class DummyLoader:
     def __len__(self):
         return self.batches
 
-class MetricsTracker:
+class _HybridMetricsTracker:
+    """Local metrics accumulator for the hybrid demo (accepts arbitrary keys)."""
     def __init__(self):
         self.history = {}
 
@@ -98,7 +99,8 @@ class Tree:
         self.did_mutate = False
         self.recycled = False
 
-class ForestEcosystem:
+class _HybridForestSimulation:
+    """Local demo-only forest simulation (not the canonical ForestEcosystem)."""
     def __init__(self, config):
         self.trees = [Tree(config) for _ in range(config['initial_trees'])]
         self.config = config
@@ -179,8 +181,8 @@ def main():
     checkpoints_dir = os.path.join(config['output_dir'], 'checkpoints')
     os.makedirs(checkpoints_dir, exist_ok=True)
     train_loader = DummyLoader(batch_size=args.batch_size, batches=50)
-    tracker = MetricsTracker()
-    forest = ForestEcosystem(config)
+    tracker = _HybridMetricsTracker()
+    forest = _HybridForestSimulation(config)
     print(f"Initial trees: {len(forest.trees)}")
 
     for epoch in range(args.epochs):

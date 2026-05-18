@@ -17,6 +17,14 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+# ── Core classes imported from the canonical NeuralForest module ──────────────
+from NeuralForest import (
+    PrioritizedMulch,
+    TreeArch,
+    ForestEcosystem,
+    AdaptiveTaskHead,
+)
+
 # ==================== REPRODUCIBILITY ====================
 def set_seed(seed=42):
     np.random.seed(seed)
@@ -24,26 +32,9 @@ def set_seed(seed=42):
     torch.cuda.manual_seed_all(seed)
     random.seed(seed)
 
-# ==================== MULCH ====================
-class PrioritizedMulch:
-    def __init__(self, capacity=2000):
-        self.buffer = deque(maxlen=capacity)
-        self.capacity = capacity
-    def add(self, x, y, priority):
-        self.buffer.append((x.detach().cpu(), y.detach().cpu(), priority))
-    def __len__(self):
-        return len(self.buffer)
-
-# ==================== TREE & FOREST ====================
-class TreeArch:
-    def __init__(self, num_layers, hidden_dim, activation, dropout, normalization, residual):
-        self.num_layers = num_layers
-        self.hidden_dim = hidden_dim
-        self.activation = activation
-        self.dropout = dropout
-        self.normalization = normalization
-        self.residual = residual
-
+# ==================== TREE (demo-local, compatible with NeuralForest.TreeArch) ====================
+# TreeNet is kept here as a backward-compatible demo adapter.
+# New code should prefer TreeExpert (via ForestEcosystem._plant_tree).
 class TreeNet(nn.Module):
     _ids = 0
     def __init__(self, input_dim, arch):
@@ -82,30 +73,6 @@ class TreeNet(nn.Module):
         return self.out(h)
     def update_fitness(self, v):
         self.fitness = max(0.8 * self.fitness + 0.2 * v, 0.0)
-
-class ForestEcosystem(nn.Module):
-    def __init__(self, input_dim, max_trees):
-        super().__init__()
-        self.input_dim = input_dim
-        self.max_trees = max_trees
-        self.trees = nn.ModuleList()
-        self.mulch = PrioritizedMulch(capacity=2000)
-    def num_trees(self):
-        return len(self.trees)
-    def _plant_tree(self, arch):
-        if len(self.trees) < self.max_trees:
-            self.trees.append(TreeNet(self.input_dim, arch))
-    def _prune_trees(self, ids, min_keep=3):
-        self.trees = nn.ModuleList([t for t in self.trees if t.id not in ids])
-        while len(self.trees) < min_keep:
-            self.trees.append(TreeNet(self.input_dim, TreeArch(2, 256, 'relu', 0.1, 'none', False)))
-    def apply_bark_gradient_mask(self):
-        pass
-    def state_dict(self):
-        return super().state_dict()
-    def update_ages(self):
-        for t in self.trees:
-            t.age += 1
 
 # ==================== TASK HEAD ====================
 class EnhancedTaskHead(nn.Module):
