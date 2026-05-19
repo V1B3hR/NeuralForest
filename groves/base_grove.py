@@ -385,7 +385,7 @@ class Grove(nn.Module):
 
         clusters = []
         for spec, members in groups.items():
-            if len(members) < 1:
+            if not members:
                 continue
             avg_fit = sum(t.fitness for t in members) / len(members)
             avg_exp = sum(t.expertise_score for t in members) / len(members)

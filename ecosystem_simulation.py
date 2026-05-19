@@ -796,7 +796,7 @@ class EcosystemSimulator:
             for tree_id in to_remove:
                 if tree_id in self.tree_histories:
                     history = self.tree_histories[tree_id]
-                    resource_histories[tree_id] = history. resource_allocations
+                    resource_histories[tree_id] = history.resource_allocations
             
             # Apply natural selection (forest archives removed trees to humus nursery)
             self.forest._prune_trees(

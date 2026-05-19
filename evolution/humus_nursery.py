@@ -551,7 +551,7 @@ class HumusNursery:
             
             # Load stats
             if 'stats' in data:
-                self.stats = GraveyardStats(**data['stats'])
+                self.stats = NurseryStats(**data['stats'])
             
             logger.info(f"Loaded {len(self.records)} humus nursery records from {load_path}")
         except Exception as e:
