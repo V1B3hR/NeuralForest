@@ -14,6 +14,7 @@ dynamic environmental conditions.
 from .architecture_search import TreeArchitectureSearch
 from .self_improvement import SelfImprovementLoop
 from .tree_graveyard import TreeGraveyard, TreeRecord, GraveyardStats
+from .humus_nursery import HumusNursery, NurseryStats
 from .genealogy import GenealogyTracker, TreeLineage
 from .season_integration import SeasonalEvolution, integrate_season_with_nas
 from .monitoring import EvolutionMonitor, EvolutionSnapshot, MonitoringDashboard
@@ -44,6 +45,8 @@ from .automl import (
 __all__ = [
     "TreeArchitectureSearch",
     "SelfImprovementLoop",
+    "HumusNursery",
+    "NurseryStats",
     "TreeGraveyard",
     "TreeRecord",
     "GraveyardStats",

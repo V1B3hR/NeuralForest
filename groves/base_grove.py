@@ -84,6 +84,44 @@ class SpecialistTree(nn.Module):
         """Update expertise score for the specialization."""
         self.expertise_score = 0.95 * self.expertise_score + 0.05 * task_performance
 
+    # ------------------------------------------------------------------
+    # Phase 2: Flowering — Attraction Interfaces for Symbiosis
+    # ------------------------------------------------------------------
+
+    BLOOM_FITNESS_THRESHOLD: float = 7.0   # fitness above which the tree blooms
+    BLOOM_EXPERTISE_THRESHOLD: float = 0.5  # expertise above which the tree blooms
+
+    @property
+    def is_blooming(self) -> bool:
+        """
+        Return True when this tree is ready to cooperate (in bloom).
+
+        A tree "blooms" when it is sufficiently fit *and* expert in its
+        specialization, signalling to the forest that it is willing to share
+        knowledge with neighbouring saplings.
+        """
+        return (
+            self.fitness >= self.BLOOM_FITNESS_THRESHOLD
+            and self.expertise_score >= self.BLOOM_EXPERTISE_THRESHOLD
+        )
+
+    def bloom_signal(self) -> dict:
+        """
+        Emit a bloom signal describing this tree's current state.
+
+        Returns a dictionary that cooperating trees or the grove can use to
+        decide whether to form a symbiotic cluster with this tree.
+        """
+        return {
+            "tree_id": self.id,
+            "modality": self.modality,
+            "specialization": self.specialization,
+            "fitness": self.fitness,
+            "expertise_score": self.expertise_score,
+            "age": self.age,
+            "is_blooming": self.is_blooming,
+        }
+
 
 class LocalCanopy(nn.Module):
     """
@@ -301,3 +339,65 @@ class Grove(nn.Module):
                 for tree in self.trees
             ],
         }
+
+    # ------------------------------------------------------------------
+    # Phase 2: Flowering — Symbiotic Cluster Formation
+    # ------------------------------------------------------------------
+
+    def get_blooming_trees(self) -> list:
+        """
+        Return all trees that are currently in bloom.
+
+        Blooming trees have exceeded both the fitness and expertise thresholds
+        and are signalling readiness for symbiotic cooperation.
+        """
+        return [tree for tree in self.trees if tree.is_blooming]
+
+    def form_symbiotic_clusters(self) -> list:
+        """
+        Group blooming trees into symbiotic clusters by specialization.
+
+        Trees that share the same specialization and are both blooming form a
+        cluster. Each cluster is a dict describing the group:
+
+        .. code-block:: python
+
+            {
+                "specialization": str,
+                "tree_ids": [int, ...],
+                "avg_fitness": float,
+                "avg_expertise": float,
+                "size": int,
+            }
+
+        Returns:
+            List of cluster dicts, sorted by size (largest first).
+        """
+        blooming = self.get_blooming_trees()
+
+        # Group by specialization
+        groups: dict = {}
+        for tree in blooming:
+            spec = tree.specialization
+            if spec not in groups:
+                groups[spec] = []
+            groups[spec].append(tree)
+
+        clusters = []
+        for spec, members in groups.items():
+            if len(members) < 1:
+                continue
+            avg_fit = sum(t.fitness for t in members) / len(members)
+            avg_exp = sum(t.expertise_score for t in members) / len(members)
+            clusters.append(
+                {
+                    "specialization": spec,
+                    "tree_ids": [t.id for t in members],
+                    "avg_fitness": avg_fit,
+                    "avg_expertise": avg_exp,
+                    "size": len(members),
+                }
+            )
+
+        clusters.sort(key=lambda c: c["size"], reverse=True)
+        return clusters

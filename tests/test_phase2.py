@@ -171,5 +171,96 @@ class TestKnowledgeTransfer(unittest.TestCase):
         self.assertGreaterEqual(loss.item(), 0)
 
 
+class TestFloweringFlora(unittest.TestCase):
+    """Phase 2: Flowering Flora — bloom signals and symbiotic clusters."""
+
+    def _make_blooming_tree(self, tree_id: int, specialization: str = "classification") -> "SpecialistTree":
+        from groves.base_grove import SpecialistTree
+        tree = SpecialistTree(
+            input_dim=512,
+            hidden_dim=64,
+            tree_id=tree_id,
+            specialization=specialization,
+            modality="image",
+        )
+        tree.fitness = 9.0
+        tree.expertise_score = 0.8
+        return tree
+
+    def test_is_blooming_true_when_fit_and_expert(self):
+        """A tree with high fitness and expertise should be blooming."""
+        from groves.base_grove import SpecialistTree
+        tree = self._make_blooming_tree(0)
+        self.assertTrue(tree.is_blooming)
+
+    def test_is_blooming_false_low_fitness(self):
+        """A tree with low fitness should not bloom."""
+        from groves.base_grove import SpecialistTree
+        tree = SpecialistTree(input_dim=512, hidden_dim=64, tree_id=0,
+                              specialization="classification", modality="image")
+        tree.fitness = 3.0
+        tree.expertise_score = 0.9
+        self.assertFalse(tree.is_blooming)
+
+    def test_is_blooming_false_low_expertise(self):
+        """A tree with low expertise should not bloom."""
+        from groves.base_grove import SpecialistTree
+        tree = SpecialistTree(input_dim=512, hidden_dim=64, tree_id=0,
+                              specialization="classification", modality="image")
+        tree.fitness = 9.0
+        tree.expertise_score = 0.1
+        self.assertFalse(tree.is_blooming)
+
+    def test_bloom_signal_keys(self):
+        """bloom_signal() should contain expected keys."""
+        tree = self._make_blooming_tree(1)
+        signal = tree.bloom_signal()
+        for key in ("tree_id", "modality", "specialization", "fitness",
+                    "expertise_score", "age", "is_blooming"):
+            self.assertIn(key, signal)
+        self.assertTrue(signal["is_blooming"])
+
+    def test_get_blooming_trees(self):
+        """Grove.get_blooming_trees() returns only blooming trees."""
+        grove = VisualGrove(input_dim=512, hidden_dim=64, max_trees=8)
+        # Force all trees to bloom
+        for tree in grove.trees:
+            tree.fitness = 9.0
+            tree.expertise_score = 0.8
+        blooming = grove.get_blooming_trees()
+        self.assertEqual(len(blooming), grove.num_trees())
+
+    def test_get_blooming_trees_none_when_unfit(self):
+        """No trees bloom when all fitness values are low."""
+        grove = VisualGrove(input_dim=512, hidden_dim=64, max_trees=6)
+        for tree in grove.trees:
+            tree.fitness = 1.0
+            tree.expertise_score = 0.0
+        self.assertEqual(grove.get_blooming_trees(), [])
+
+    def test_form_symbiotic_clusters(self):
+        """Symbiotic clusters group blooming trees by specialization."""
+        grove = VisualGrove(input_dim=512, hidden_dim=64, max_trees=8)
+        # Force all trees to bloom
+        for tree in grove.trees:
+            tree.fitness = 9.0
+            tree.expertise_score = 0.8
+        clusters = grove.form_symbiotic_clusters()
+        self.assertIsInstance(clusters, list)
+        # Each cluster has the expected keys
+        for cluster in clusters:
+            for key in ("specialization", "tree_ids", "avg_fitness",
+                        "avg_expertise", "size"):
+                self.assertIn(key, cluster)
+
+    def test_no_clusters_when_not_blooming(self):
+        """form_symbiotic_clusters() returns empty list when no trees bloom."""
+        grove = VisualGrove(input_dim=512, hidden_dim=64, max_trees=6)
+        for tree in grove.trees:
+            tree.fitness = 1.0
+            tree.expertise_score = 0.0
+        self.assertEqual(grove.form_symbiotic_clusters(), [])
+
+
 if __name__ == "__main__":
     unittest.main()

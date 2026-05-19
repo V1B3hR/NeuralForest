@@ -747,7 +747,7 @@ class EcosystemSimulator:
     
     def selection_pressure(self, min_keep: int = 2) -> Tuple[List[int], float]:
         """
-        Apply selection pressure:  identify weak trees for pruning.
+        Apply selection pressure:  identify weak trees for natural selection.
         
         Args:
             min_keep:  Minimum number of trees to keep
@@ -776,29 +776,29 @@ class EcosystemSimulator:
     
     def prune_weak_trees(self, min_keep: int = 2) -> int:
         """
-        Prune weak trees based on fitness. 
+        Apply natural selection to remove weak trees based on fitness.
         
-        ENHANCED: Now passes resource history to forest for graveyard archival.
+        ENHANCED: Now passes resource history to forest for humus nursery archival.
         
         Args:
             min_keep: Minimum trees to keep
             
         Returns: 
-            Number of trees pruned
+            Number of trees removed through natural selection
         """
         to_remove, selection_rate = self.selection_pressure(min_keep)
         
         if to_remove:
             before = self.forest.num_trees()
             
-            # Extract resource histories for eliminated trees
+            # Extract resource histories for naturally-selected trees
             resource_histories = {}
             for tree_id in to_remove:
                 if tree_id in self.tree_histories:
                     history = self.tree_histories[tree_id]
                     resource_histories[tree_id] = history. resource_allocations
             
-            # Prune trees (forest will archive to graveyard)
+            # Apply natural selection (forest archives removed trees to humus nursery)
             self.forest._prune_trees(
                 to_remove,
                 min_keep=min_keep,
