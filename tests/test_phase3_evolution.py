@@ -218,7 +218,7 @@ class TestTreeGraveyard:
         assert calls["path"] == str(weights_path)
         assert calls["kwargs"]["map_location"] == "cpu"
         assert tree.loaded_state == {"w": 1}
-    
+
     def test_analyze_elimination_patterns(self):
         """Test elimination pattern analysis."""
         # Create diverse tree population
