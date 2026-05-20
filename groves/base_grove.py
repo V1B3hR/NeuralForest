@@ -288,7 +288,7 @@ class Grove(nn.Module):
         self, source_tree: SpecialistTree, target_tree: SpecialistTree
     ) -> float:
         """Return mean absolute parameter distance between two trees."""
-        total_distance = None
+        total_distance = 0.0
         num_params = 0
         with torch.no_grad():
             for src_param, tgt_param in zip(
@@ -297,14 +297,10 @@ class Grove(nn.Module):
                 if src_param.shape != tgt_param.shape:
                     return float("inf")
                 mean_distance = (src_param - tgt_param).abs().mean()
-                total_distance = (
-                    mean_distance
-                    if total_distance is None
-                    else total_distance + mean_distance
-                )
+                total_distance = total_distance + mean_distance
                 num_params += 1
 
-        if total_distance is None or num_params == 0:
+        if num_params == 0:
             return float("inf")
         return (total_distance / num_params).item()
 

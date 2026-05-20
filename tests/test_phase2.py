@@ -146,6 +146,11 @@ class TestGrove(unittest.TestCase):
         grove.trees.append(clone_tree)
         grove.tree_counter += 1
 
+        self.assertLess(
+            grove._tree_param_distance(first_tree, clone_tree),
+            grove.min_mycelium_distance,
+        )
+
         grove._connect_to_similar_trees(clone_tree)
 
         self.assertEqual(grove.mycelium_connections[first_tree.id], [])
