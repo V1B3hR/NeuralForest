@@ -147,6 +147,77 @@ class TestTreeGraveyard:
         assert len(candidates) == 2  # fitness 6 and 8
         assert candidates[0].final_fitness == 8.0  # Should be sorted by fitness desc
         assert candidates[1].final_fitness == 6.0
+
+    def test_resurrection_candidates_allow_zero_filters(self):
+        """Test resurrection candidate filters when thresholds are zero."""
+        for i, (fitness, age) in enumerate([(0.0, 0), (1.0, 1)]):
+            arch = TreeArch(num_layers=1, hidden_dim=16, activation="relu",
+                          dropout=0.0, normalization="none", residual=False)
+            tree = TreeExpert(input_dim=4, tree_id=i, arch=arch)
+            tree.fitness = fitness
+            tree.age = age
+            self.graveyard.archive_tree(tree, elimination_reason="test", generation=0)
+
+        candidates = self.graveyard.get_resurrection_candidates(min_fitness=0.0, max_age=0)
+
+        assert len(candidates) == 1
+        assert candidates[0].tree_id == 0
+
+    def test_humus_nursery_default_paths(self):
+        """Test that HumusNursery defaults use humus-nursery naming."""
+        graveyard = TreeGraveyard(auto_save=False)
+
+        assert graveyard.weights_dir.name == "humus_nursery_weights"
+        assert graveyard.save_path.name == "humus_nursery.json"
+
+    def test_resurrect_tree_loads_weights_with_map_location_cpu(self, monkeypatch):
+        """Test resurrection loads weights with CPU map_location."""
+        calls = {}
+
+        class DummyTree:
+            def __init__(self, input_dim, tree_id, arch):
+                self.input_dim = input_dim
+                self.id = tree_id
+                self.arch = arch
+                self.loaded_state = None
+
+            def load_state_dict(self, state_dict):
+                self.loaded_state = state_dict
+
+        def fake_torch_load(path, **kwargs):
+            calls["path"] = path
+            calls["kwargs"] = kwargs
+            return {"w": 1}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            weights_path = Path(tmpdir) / "weights.pt"
+            weights_path.write_bytes(b"dummy")
+
+            record = TreeRecord(
+                tree_id=1,
+                timestamp=1.0,
+                architecture={
+                    "num_layers": 1,
+                    "hidden_dim": 16,
+                    "activation": "relu",
+                    "dropout": 0.0,
+                    "normalization": "none",
+                    "residual": False,
+                },
+                num_parameters=10,
+                final_fitness=1.0,
+                age_at_elimination=1,
+                elimination_reason="test",
+                generation=0,
+                weights_path=str(weights_path),
+            )
+
+            monkeypatch.setattr("evolution.humus_nursery.torch.load", fake_torch_load)
+            tree = self.graveyard.resurrect_tree(record, DummyTree, input_dim=4, new_tree_id=7)
+
+        assert calls["path"] == str(weights_path)
+        assert calls["kwargs"]["map_location"] == "cpu"
+        assert tree.loaded_state == {"w": 1}
     
     def test_analyze_elimination_patterns(self):
         """Test elimination pattern analysis."""
