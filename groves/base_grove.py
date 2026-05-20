@@ -304,7 +304,7 @@ class Grove(nn.Module):
                 )
                 num_params += 1
 
-        if num_params == 0:
+        if total_distance is None or num_params == 0:
             return float("inf")
         return (total_distance / num_params).item()
 

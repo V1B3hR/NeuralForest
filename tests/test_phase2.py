@@ -3,6 +3,7 @@ Test suite for Phase 2 components: Groves and Mycelium.
 """
 
 import unittest
+from unittest.mock import patch
 import torch
 import sys
 import os
@@ -129,25 +130,24 @@ class TestGrove(unittest.TestCase):
     def test_mycelium_connections_skip_trees_below_min_distance(self):
         """Trees below the minimum parameter distance should not link."""
         grove = Grove(modality="image", input_dim=16, hidden_dim=8, max_trees=4)
-        grove.min_mycelium_distance = float("inf")
+        grove.min_mycelium_distance = 1e-6
 
         first_id = grove.plant_specialist("classification")
         self.assertIsNotNone(first_id)
         first_tree = grove.trees[0]
 
-        clone_id = grove.plant_specialist("classification")
+        with patch.object(grove, "_connect_to_similar_trees"):
+            clone_id = grove.plant_specialist("classification")
         self.assertIsNotNone(clone_id)
         clone_tree = grove.trees[-1]
         clone_tree.load_state_dict(first_tree.state_dict())
-
-        grove.min_mycelium_distance = 1e-6
 
         self.assertLess(
             grove._tree_param_distance(first_tree, clone_tree),
             grove.min_mycelium_distance,
         )
 
-        grove._connect_to_similar_trees(clone_tree)
+        Grove._connect_to_similar_trees(grove, clone_tree)
 
         self.assertEqual(grove.mycelium_connections[first_tree.id], [])
         self.assertEqual(grove.mycelium_connections[clone_tree.id], [])
