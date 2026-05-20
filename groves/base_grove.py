@@ -251,7 +251,8 @@ class Grove(nn.Module):
     def _connect_to_similar_trees(self, new_tree: SpecialistTree):
         """
         Establish mycelium connections between the new tree and existing trees
-        with similar specializations while keeping spacing between neighbors.
+        while keeping spacing between neighbors. Matching specializations only
+        affect the connection strength.
         """
         candidates = []
         for existing_tree in self.trees:
@@ -287,18 +288,25 @@ class Grove(nn.Module):
         self, source_tree: SpecialistTree, target_tree: SpecialistTree
     ) -> float:
         """Return mean absolute parameter distance between two trees."""
-        distances = []
+        total_distance = None
+        num_params = 0
         with torch.no_grad():
             for src_param, tgt_param in zip(
                 source_tree.parameters(), target_tree.parameters()
             ):
                 if src_param.shape != tgt_param.shape:
                     return float("inf")
-                distances.append((src_param - tgt_param).abs().mean().item())
+                mean_distance = (src_param - tgt_param).abs().mean()
+                total_distance = (
+                    mean_distance
+                    if total_distance is None
+                    else total_distance + mean_distance
+                )
+                num_params += 1
 
-        if not distances:
+        if total_distance is None or num_params == 0:
             return float("inf")
-        return sum(distances) / len(distances)
+        return (total_distance / num_params).item()
 
     def forward(
         self, x: torch.Tensor, top_k: int = 3

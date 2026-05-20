@@ -10,7 +10,7 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from groves import VisualGrove, AudioGrove, TextGrove
+from groves import Grove, VisualGrove, AudioGrove, TextGrove
 from groves.base_grove import SpecialistTree
 from mycelium import KnowledgeTransfer
 
@@ -108,6 +108,48 @@ class TestGrove(unittest.TestCase):
         self.assertIn("num_trees", stats)
         self.assertIn("trees", stats)
         self.assertEqual(stats["modality"], "text")
+
+    def test_mycelium_connections_respect_max_neighbors(self):
+        """Each tree should stay within the configured mycelium neighbor cap."""
+        torch.manual_seed(0)
+        grove = Grove(modality="image", input_dim=16, hidden_dim=8, max_trees=6)
+        grove.min_mycelium_distance = 0.0
+        grove.max_mycelium_neighbors = 2
+
+        for _ in range(grove.max_trees):
+            tree_id = grove.plant_specialist("classification")
+            self.assertIsNotNone(tree_id)
+
+        for tree in grove.trees:
+            self.assertLessEqual(
+                len(grove.mycelium_connections[tree.id]),
+                grove.max_mycelium_neighbors,
+            )
+
+    def test_mycelium_connections_skip_trees_below_min_distance(self):
+        """Trees below the minimum parameter distance should not link."""
+        grove = Grove(modality="image", input_dim=16, hidden_dim=8, max_trees=4)
+        grove.min_mycelium_distance = 1e-6
+
+        first_id = grove.plant_specialist("classification")
+        self.assertIsNotNone(first_id)
+        first_tree = grove.trees[0]
+
+        clone_tree = SpecialistTree(
+            input_dim=16,
+            hidden_dim=8,
+            tree_id=grove.tree_counter,
+            specialization="classification",
+            modality="image",
+        )
+        clone_tree.load_state_dict(first_tree.state_dict())
+        grove.trees.append(clone_tree)
+        grove.tree_counter += 1
+
+        grove._connect_to_similar_trees(clone_tree)
+
+        self.assertEqual(grove.mycelium_connections[first_tree.id], [])
+        self.assertEqual(grove.mycelium_connections[clone_tree.id], [])
 
 
 class TestLitterAbsorption(unittest.TestCase):
