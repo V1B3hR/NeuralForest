@@ -74,6 +74,44 @@ class TestTreeGraveyard:
         assert len(self.graveyard.records) == 1
         assert 0 in self.graveyard.records_by_id
         assert self.graveyard.stats.total_eliminated == 1
+
+    def test_archive_tree_adds_decomposition_notes(self):
+        """Test decomposition notes and planting context are recorded."""
+        arch = TreeArch(
+            num_layers=3,
+            hidden_dim=64,
+            activation="relu",
+            dropout=0.6,
+            normalization="layer",
+            residual=True,
+        )
+        tree = TreeExpert(input_dim=4, tree_id=7, arch=arch)
+        tree.fitness = 1.2
+        tree.age = 70
+
+        diagnostics = {
+            "fitness_trend": "declining",
+            "avg_training_loss": 1.5,
+            "competition_wins": 1,
+            "competition_losses": 3,
+            "fitness_trajectory": [3.0, 2.0, 1.2],
+            "resource_allocations": [0, 1, 0],
+        }
+
+        record = self.graveyard.archive_tree(
+            tree=tree,
+            elimination_reason="low_fitness",
+            generation=2,
+            resource_history=[0, 1, 0],
+            diagnostics=diagnostics,
+            planting_context={"warnings": ["High dropout may suppress early growth."]},
+        )
+
+        assert record.inefficiency_notes
+        assert any("declining" in note.lower() for note in record.inefficiency_notes)
+        assert record.decomposition_progress
+        assert record.decomposition_progress[0]["stage"] == "diagnosis"
+        assert record.planting_context["warnings"] == ["High dropout may suppress early growth."]
     
     def test_query_by_reason(self):
         """Test querying records by elimination reason."""
@@ -460,6 +498,11 @@ class TestTreeRecord:
             'generation': 10,
             'recent_disruptions': [],
             'resource_allocation_history': [],
+            'planting_context': {'warnings': ['seed ok']},
+            'inefficiency_notes': ['low fitness'],
+            'decomposition_progress': [
+                {'stage': 'diagnosis', 'timestamp': 1.0, 'notes': 'low fitness'},
+            ],
             'parent_ids': [],
             'children_ids': [],
             'weights_path': None,
@@ -470,6 +513,8 @@ class TestTreeRecord:
         assert record.tree_id == 5
         assert record.final_fitness == 7.5
         assert record.age_at_elimination == 15
+        assert record.planting_context["warnings"] == ["seed ok"]
+        assert record.inefficiency_notes == ["low fitness"]
 
 
 if __name__ == "__main__":

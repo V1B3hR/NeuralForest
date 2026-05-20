@@ -793,17 +793,25 @@ class EcosystemSimulator:
             
             # Extract resource histories for naturally-selected trees
             resource_histories = {}
+            tree_diagnostics = {}
             for tree_id in to_remove:
                 if tree_id in self.tree_histories:
                     history = self.tree_histories[tree_id]
                     resource_histories[tree_id] = history.resource_allocations
+                    tree_diagnostics[tree_id] = {
+                        **history.get_summary(),
+                        "fitness_trajectory": list(history.fitness_trajectory),
+                        "training_losses": list(history.training_losses),
+                        "resource_allocations": list(history.resource_allocations),
+                    }
             
             # Apply natural selection (forest archives removed trees to humus nursery)
             self.forest._prune_trees(
                 to_remove,
                 min_keep=min_keep,
                 reason="low_fitness",
-                resource_history=resource_histories
+                resource_history=resource_histories,
+                tree_diagnostics=tree_diagnostics,
             )
             
             after = self.forest.num_trees()

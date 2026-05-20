@@ -8,6 +8,7 @@
 
 import math
 import random
+import time
 from collections import deque
 from dataclasses import dataclass, asdict
 from typing import Optional
@@ -380,6 +381,9 @@ class ForestEcosystem(nn.Module):
         # Track current generation for graveyard
         self.current_generation = 0
 
+        # Planting audit log for seed care
+        self.planting_log = {}
+
         # Optional per-forest distribution / defaults for new trees
         self.default_arch = TreeArch(
             num_layers=1,
@@ -397,6 +401,28 @@ class ForestEcosystem(nn.Module):
     def num_trees(self):
         return len(self.trees)
 
+    def _assess_seed_health(self, tree: TreeExpert):
+        notes = []
+        arch = tree.arch
+        num_params = sum(p.numel() for p in tree.parameters())
+
+        if arch.num_layers > 4:
+            notes.append("Deep architecture may slow early adaptation.")
+        if arch.dropout >= 0.5:
+            notes.append("High dropout may suppress early growth.")
+        if arch.hidden_dim > self.hidden_dim * 2:
+            notes.append("Wide hidden_dim may overconsume resources early.")
+        if num_params > 1_000_000:
+            notes.append("Large parameter count risks inefficient nutrient use.")
+
+        return {
+            "tree_id": tree.id,
+            "timestamp": time.time(),
+            "architecture": arch.to_dict() if hasattr(arch, "to_dict") else arch,
+            "num_parameters": num_params,
+            "warnings": notes,
+        }
+
     def _plant_tree(self, arch: Optional[TreeArch] = None):
         if self.num_trees() >= self.max_trees:
             return
@@ -407,6 +433,7 @@ class ForestEcosystem(nn.Module):
         t = TreeExpert(self.input_dim, self.tree_counter, arch).to(DEVICE)
         self.trees.append(t)
         self.graph.add_node(t.id)
+        self.planting_log[t.id] = self._assess_seed_health(t)
 
         # connect to most similar existing tree (param-distance heuristic)
         if self.num_trees() > 1:
@@ -435,7 +462,14 @@ class ForestEcosystem(nn.Module):
         self.tree_counter += 1
         self.topology_version += 1
 
-    def _prune_trees(self, ids_to_remove, min_keep=2, reason="low_fitness", resource_history=None):
+    def _prune_trees(
+        self,
+        ids_to_remove,
+        min_keep=2,
+        reason="low_fitness",
+        resource_history=None,
+        tree_diagnostics=None,
+    ):
         """
         Prune trees from the forest, archiving them in the graveyard before removal.
         
@@ -444,6 +478,7 @@ class ForestEcosystem(nn.Module):
             min_keep: Minimum number of trees to keep in the forest
             reason: Reason for elimination (for graveyard records)
             resource_history: Optional resource allocation history for eliminated trees
+            tree_diagnostics: Optional diagnostics dict keyed by tree ID
         """
         if self.num_trees() <= min_keep:
             return
@@ -465,6 +500,16 @@ class ForestEcosystem(nn.Module):
                 parent_ids = []
                 if self.graph.has_node(tree.id):
                     parent_ids = list(self.graph.neighbors(tree.id))
+
+                tree_resource_history = resource_history
+                if isinstance(resource_history, dict):
+                    tree_resource_history = resource_history.get(tree.id)
+
+                diagnostics = None
+                if isinstance(tree_diagnostics, dict):
+                    diagnostics = tree_diagnostics.get(tree.id)
+
+                planting_context = self.planting_log.get(tree.id, {})
                 
                 # Archive the tree
                 self.graveyard.archive_tree(
@@ -472,10 +517,14 @@ class ForestEcosystem(nn.Module):
                     elimination_reason=reason,
                     generation=self.current_generation,
                     recent_disruptions=[],  # Could be tracked separately
-                    resource_history=resource_history,
+                    resource_history=tree_resource_history,
                     parent_ids=parent_ids,
                     children_ids=[],  # Could be tracked if we maintain genealogy
+                    diagnostics=diagnostics,
+                    planting_context=planting_context,
                 )
+                if tree.id in self.planting_log:
+                    del self.planting_log[tree.id]
         
         self.trees = nn.ModuleList(keep).to(DEVICE)
 
@@ -529,6 +578,9 @@ class ForestEcosystem(nn.Module):
         # Add to forest
         self.trees.append(resurrected.to(DEVICE))
         self.graph.add_node(resurrected.id)
+        seed_report = self._assess_seed_health(resurrected)
+        seed_report["resurrected_from"] = record.tree_id
+        self.planting_log[resurrected.id] = seed_report
         
         # Connect to existing trees (same as _plant_tree)
         if self.num_trees() > 1:
@@ -644,6 +696,7 @@ class ForestEcosystem(nn.Module):
 
         forest.trees = nn.ModuleList()
         forest.graph.clear()
+        forest.planting_log = {}
         forest.tree_counter = checkpoint["tree_counter"]
         forest.default_arch = TreeArch(
             **checkpoint.get(
@@ -671,6 +724,9 @@ class ForestEcosystem(nn.Module):
 
             forest.trees.append(t)
             forest.graph.add_node(t.id)
+            seed_report = forest._assess_seed_health(t)
+            seed_report["restored_from_checkpoint"] = True
+            forest.planting_log[t.id] = seed_report
 
         forest.router.load_state_dict(checkpoint["router_state_dict"])
 

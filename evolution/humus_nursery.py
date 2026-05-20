@@ -54,6 +54,13 @@ class TreeRecord:
     # Environmental context
     recent_disruptions: List[Dict[str, Any]] = field(default_factory=list)
     resource_allocation_history: List[float] = field(default_factory=list)
+
+    # Planting context (seed care notes)
+    planting_context: Dict[str, Any] = field(default_factory=dict)
+
+    # Decomposition analysis (bacteria digestion notes + progress)
+    inefficiency_notes: List[str] = field(default_factory=list)
+    decomposition_progress: List[Dict[str, Any]] = field(default_factory=list)
     
     # Genealogy
     parent_ids: List[int] = field(default_factory=list)
@@ -144,6 +151,93 @@ class HumusNursery:
             self.weights_dir.mkdir(parents=True, exist_ok=True)
         if self.auto_save:
             self.save_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def _build_inefficiency_notes(
+        self,
+        tree,
+        resource_history: Optional[List[float]],
+        diagnostics: Optional[Dict[str, Any]],
+        planting_context: Optional[Dict[str, Any]],
+    ) -> List[str]:
+        notes: List[str] = []
+        fitness = float(getattr(tree, "fitness", 0.0))
+        age = int(getattr(tree, "age", 0))
+
+        if fitness <= 2.0:
+            notes.append("Persistently low fitness at elimination.")
+        if age >= 60 and fitness < 3.0:
+            notes.append("Aging tree with stalled fitness growth.")
+
+        fitness_history = None
+        if diagnostics and diagnostics.get("fitness_trajectory"):
+            fitness_history = diagnostics.get("fitness_trajectory")
+        elif hasattr(tree, "fitness_history"):
+            fitness_history = getattr(tree, "fitness_history")
+
+        if fitness_history and len(fitness_history) >= 2:
+            if fitness_history[-1] < fitness_history[0]:
+                notes.append("Fitness declined over the tree's lifespan.")
+
+        if diagnostics:
+            trend = diagnostics.get("fitness_trend")
+            if trend == "declining":
+                notes.append("Fitness trend declining across generations.")
+            elif trend == "stable":
+                notes.append("Fitness plateaued despite training cycles.")
+
+            avg_loss = diagnostics.get("avg_training_loss")
+            if avg_loss is not None and avg_loss > 1.0:
+                notes.append("High average training loss during allocations.")
+
+            wins = diagnostics.get("competition_wins", 0)
+            losses = diagnostics.get("competition_losses", 0)
+            if losses > wins:
+                notes.append("Lost more competition rounds than it won.")
+
+        allocation_history = resource_history
+        if allocation_history is None and diagnostics:
+            allocation_history = diagnostics.get("resource_allocations")
+
+        if allocation_history:
+            avg_alloc = sum(allocation_history) / len(allocation_history)
+            zero_allocs = sum(1 for alloc in allocation_history if alloc <= 0)
+            if avg_alloc < 2:
+                notes.append("Received low average resource allocations.")
+            if zero_allocs >= len(allocation_history) / 2:
+                notes.append("Frequent zero-allocation cycles starved growth.")
+
+        if planting_context and planting_context.get("warnings"):
+            for warning in planting_context["warnings"]:
+                notes.append(f"Seed warning: {warning}")
+
+        if not notes:
+            notes.append("No dominant inefficiency signal; likely stochastic selection.")
+
+        return notes
+
+    def _build_decomposition_progress(
+        self,
+        inefficiency_notes: List[str],
+    ) -> List[Dict[str, Any]]:
+        timestamp = time.time()
+        summary = "; ".join(inefficiency_notes)
+        return [
+            {
+                "stage": "diagnosis",
+                "timestamp": timestamp,
+                "notes": summary,
+            },
+            {
+                "stage": "digestion",
+                "timestamp": timestamp,
+                "notes": "Bacteria digest weak patterns into reusable nutrients.",
+            },
+            {
+                "stage": "stabilization",
+                "timestamp": timestamp,
+                "notes": "Humus stabilized for future saplings.",
+            },
+        ]
     
     def archive_tree(
         self,
@@ -154,6 +248,8 @@ class HumusNursery:
         resource_history: Optional[List[float]] = None,
         parent_ids: Optional[List[int]] = None,
         children_ids: Optional[List[int]] = None,
+        diagnostics: Optional[Dict[str, Any]] = None,
+        planting_context: Optional[Dict[str, Any]] = None,
     ) -> TreeRecord:
         """
         Archive a tree before elimination.
@@ -166,6 +262,8 @@ class HumusNursery:
             resource_history: History of resource allocation for this tree
             parent_ids: IDs of parent trees (for genealogy)
             children_ids: IDs of child trees (for genealogy)
+            diagnostics: Optional diagnostics summary for inefficiency analysis
+            planting_context: Seed health notes captured at planting time
         
         Returns:
             TreeRecord: The created archive record
@@ -206,6 +304,15 @@ class HumusNursery:
                 logger.warning(f"Failed to save weights for tree {tree_id}: {e}")
                 weights_path = None
         
+        planting_context = planting_context or {}
+        inefficiency_notes = self._build_inefficiency_notes(
+            tree=tree,
+            resource_history=resource_history,
+            diagnostics=diagnostics,
+            planting_context=planting_context,
+        )
+        decomposition_progress = self._build_decomposition_progress(inefficiency_notes)
+
         # Create record
         record = TreeRecord(
             tree_id=tree_id,
@@ -220,6 +327,9 @@ class HumusNursery:
             generation=generation,
             recent_disruptions=recent_disruptions or [],
             resource_allocation_history=resource_history or [],
+            planting_context=planting_context,
+            inefficiency_notes=inefficiency_notes,
+            decomposition_progress=decomposition_progress,
             parent_ids=parent_ids or [],
             children_ids=children_ids or [],
             weights_path=weights_path,
