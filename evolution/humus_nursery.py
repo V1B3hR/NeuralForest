@@ -206,10 +206,10 @@ class HumusNursery:
         if allocation_history:
             avg_alloc = statistics.mean(allocation_history)
             zero_allocs = sum(1 for alloc in allocation_history if alloc <= 0)
-            # Heuristic: average allocation below 2 samples suggests starvation.
+            # Heuristic: average allocation below 2 units suggests starvation.
             if avg_alloc < MIN_AVG_ALLOCATION:
                 notes.append("Received low average resource allocations.")
-            # Heuristic: >=50% zero allocations indicates sustained drought.
+            # Heuristic: >=0.5 (50%) zero allocations indicates sustained drought.
             if zero_allocs >= len(allocation_history) * ZERO_ALLOCATION_FRACTION:
                 notes.append("Frequent zero-allocation cycles starved growth.")
 

@@ -527,7 +527,7 @@ class ForestEcosystem(nn.Module):
                 planting_context = self.planting_log.get(tree.id, {})
                 
                 # Archive the tree
-                self.graveyard.archive_tree(
+                record = self.graveyard.archive_tree(
                     tree=tree,
                     elimination_reason=reason,
                     generation=self.current_generation,
@@ -538,7 +538,7 @@ class ForestEcosystem(nn.Module):
                     diagnostics=diagnostics,
                     planting_context=planting_context,
                 )
-                if tree.id in self.planting_log:
+                if record and tree.id in self.planting_log:
                     del self.planting_log[tree.id]
         
         self.trees = nn.ModuleList(keep).to(DEVICE)
