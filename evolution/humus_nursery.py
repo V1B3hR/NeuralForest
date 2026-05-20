@@ -124,9 +124,9 @@ class HumusNursery:
         self.max_records = max_records
         self.save_weights = save_weights
         tmp_dir = Path(tempfile.gettempdir())
-        self.weights_dir = Path(weights_dir) if weights_dir else tmp_dir / "graveyard_weights"
+        self.weights_dir = Path(weights_dir) if weights_dir else tmp_dir / "humus_nursery_weights"
         self.auto_save = auto_save
-        self.save_path = Path(save_path) if save_path else tmp_dir / "tree_graveyard.json"
+        self.save_path = Path(save_path) if save_path else tmp_dir / "humus_nursery.json"
         
         # Storage
         self.records: deque[TreeRecord] = deque(maxlen=max_records)
@@ -292,9 +292,9 @@ class HumusNursery:
         
         for record in self.records:
             # Apply filters
-            if min_fitness and record.final_fitness < min_fitness:
+            if min_fitness is not None and record.final_fitness < min_fitness:
                 continue
-            if max_age and record.age_at_elimination > max_age:
+            if max_age is not None and record.age_at_elimination > max_age:
                 continue
             if record.elimination_reason in exclude_set:
                 continue
@@ -353,7 +353,7 @@ class HumusNursery:
         # Load weights if available
         if record.weights_path and Path(record.weights_path).exists():
             try:
-                tree.load_state_dict(torch.load(record.weights_path))
+                tree.load_state_dict(torch.load(record.weights_path, map_location="cpu"))
                 logger.info(f"Loaded weights for resurrected tree {new_tree_id} from {record.weights_path}")
             except Exception as e:
                 logger.warning(f"Failed to load weights for resurrection: {e}")
@@ -504,7 +504,7 @@ class HumusNursery:
         return successful
     
     def save_to_disk(self, path: Optional[Path] = None) -> None:
-        """Save graveyard records to disk."""
+        """Save humus nursery records to disk."""
         save_path = path or self.save_path
         
         data = {
@@ -524,11 +524,11 @@ class HumusNursery:
             logger.error(f"Failed to save humus nursery to disk: {e}")
     
     def load_from_disk(self, path: Optional[Path] = None) -> None:
-        """Load graveyard records from disk."""
+        """Load humus nursery records from disk."""
         load_path = path or self.save_path
         
         if not load_path.exists():
-            logger.warning(f"Graveyard file not found: {load_path}")
+            logger.warning(f"Humus nursery file not found: {load_path}")
             return
         
         try:
