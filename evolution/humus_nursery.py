@@ -29,8 +29,9 @@ import torch
 
 logger = logging.getLogger(__name__)
 
-MIN_AVG_RESOURCE_ALLOCATION_THRESHOLD = 2
-ZERO_ALLOCATION_FRACTION_THRESHOLD = 0.5
+# Heuristic thresholds for inefficiency signals.
+MIN_AVG_ALLOCATION = 2
+ZERO_ALLOCATION_FRACTION = 0.5
 
 
 @dataclass
@@ -205,9 +206,11 @@ class HumusNursery:
         if allocation_history:
             avg_alloc = statistics.mean(allocation_history)
             zero_allocs = sum(1 for alloc in allocation_history if alloc <= 0)
-            if avg_alloc < MIN_AVG_RESOURCE_ALLOCATION_THRESHOLD:
+            # Heuristic: average allocation below 2 samples suggests starvation.
+            if avg_alloc < MIN_AVG_ALLOCATION:
                 notes.append("Received low average resource allocations.")
-            if zero_allocs >= len(allocation_history) * ZERO_ALLOCATION_FRACTION_THRESHOLD:
+            # Heuristic: >=50% zero allocations indicates sustained drought.
+            if zero_allocs >= len(allocation_history) * ZERO_ALLOCATION_FRACTION:
                 notes.append("Frequent zero-allocation cycles starved growth.")
 
         if planting_context and planting_context.get("warnings"):

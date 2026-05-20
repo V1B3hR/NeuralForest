@@ -34,7 +34,7 @@ def set_seed(seed=42):
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# Heuristic threshold for seed audits: large models can overconsume early resources.
+# Heuristic seed-audit threshold: >1M parameters often strain early resource budgets.
 MAX_EFFICIENT_PARAMS = 1_000_000
 
 
@@ -432,6 +432,12 @@ class ForestEcosystem(nn.Module):
             "warnings": notes,
         }
 
+    def _register_tree_planting(self, tree: TreeExpert, **context):
+        seed_report = self._assess_seed_health(tree)
+        seed_report.update(context)
+        self.planting_log[tree.id] = seed_report
+        return seed_report
+
     def _plant_tree(self, arch: Optional[TreeArch] = None):
         if self.num_trees() >= self.max_trees:
             return
@@ -442,7 +448,7 @@ class ForestEcosystem(nn.Module):
         t = TreeExpert(self.input_dim, self.tree_counter, arch).to(DEVICE)
         self.trees.append(t)
         self.graph.add_node(t.id)
-        self.planting_log[t.id] = self._assess_seed_health(t)
+        self._register_tree_planting(t)
 
         # connect to most similar existing tree (param-distance heuristic)
         if self.num_trees() > 1:
@@ -486,7 +492,7 @@ class ForestEcosystem(nn.Module):
             ids_to_remove: List of tree IDs to remove
             min_keep: Minimum number of trees to keep in the forest
             reason: Reason for elimination (for graveyard records)
-            resource_history: Optional resource allocation history for eliminated trees
+            resource_history: Optional allocation list for all trees, or dict keyed by tree ID
             tree_diagnostics: Optional diagnostics dict keyed by tree ID
         """
         if self.num_trees() <= min_keep:
@@ -587,9 +593,7 @@ class ForestEcosystem(nn.Module):
         # Add to forest
         self.trees.append(resurrected.to(DEVICE))
         self.graph.add_node(resurrected.id)
-        seed_report = self._assess_seed_health(resurrected)
-        seed_report["resurrected_from"] = record.tree_id
-        self.planting_log[resurrected.id] = seed_report
+        self._register_tree_planting(resurrected, resurrected_from=record.tree_id)
         
         # Connect to existing trees (same as _plant_tree)
         if self.num_trees() > 1:
@@ -733,9 +737,7 @@ class ForestEcosystem(nn.Module):
 
             forest.trees.append(t)
             forest.graph.add_node(t.id)
-            seed_report = forest._assess_seed_health(t)
-            seed_report["restored_from_checkpoint"] = True
-            forest.planting_log[t.id] = seed_report
+            forest._register_tree_planting(t, restored_from_checkpoint=True)
 
         forest.router.load_state_dict(checkpoint["router_state_dict"])
 
