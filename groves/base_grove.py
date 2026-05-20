@@ -270,18 +270,19 @@ class Grove(nn.Module):
             same_specialization = (
                 existing_tree.specialization == new_tree.specialization
             )
-            candidates.append((not same_specialization, distance, existing_tree))
+            specialization_priority = 0 if same_specialization else 1
+            candidates.append((specialization_priority, distance, existing_tree))
 
         candidates.sort(key=lambda item: (item[0], item[1]))
         max_neighbors = max(0, min(self.max_mycelium_neighbors, self.max_trees - 1))
 
-        for cross_specialization, _, existing_tree in candidates:
+        for specialization_priority, _, existing_tree in candidates:
             if len(self.mycelium_connections[new_tree.id]) >= max_neighbors:
                 break
             if len(self.mycelium_connections[existing_tree.id]) >= max_neighbors:
                 continue
             if (
-                cross_specialization
+                specialization_priority == 1
                 and random.random() >= self.cross_specialization_link_probability
             ):
                 continue

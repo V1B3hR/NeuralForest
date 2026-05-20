@@ -154,6 +154,7 @@ class TestGrove(unittest.TestCase):
 
     def test_mycelium_prefers_same_specialization_before_cross_specialization(self):
         """Matching specializations should be prioritized before cross-links."""
+        same_specialization_strength = 1.0
         grove = Grove(modality="image", input_dim=16, hidden_dim=8, max_trees=4)
         grove.min_mycelium_distance = 0.0
         grove.max_mycelium_neighbors = 1
@@ -182,14 +183,19 @@ class TestGrove(unittest.TestCase):
         ), patch("groves.base_grove.random.random", return_value=0.0):
             Grove._connect_to_similar_trees(grove, new_tree)
 
-        self.assertEqual(grove.mycelium_connections[new_tree.id], [(same_tree.id, 1.0)])
         self.assertEqual(
-            grove.mycelium_connections[same_tree.id], [(new_tree.id, 1.0)]
+            grove.mycelium_connections[new_tree.id],
+            [(same_tree.id, same_specialization_strength)],
+        )
+        self.assertEqual(
+            grove.mycelium_connections[same_tree.id],
+            [(new_tree.id, same_specialization_strength)],
         )
         self.assertEqual(grove.mycelium_connections[cross_tree.id], [])
 
     def test_mycelium_cross_specialization_links_respect_probability(self):
         """Cross-specialization links should follow the configured probability."""
+        cross_specialization_strength = 0.3
         for random_value, expected_connected in ((0.0, True), (0.9, False)):
             grove = Grove(modality="image", input_dim=16, hidden_dim=8, max_trees=3)
             grove.min_mycelium_distance = 0.0
@@ -213,10 +219,12 @@ class TestGrove(unittest.TestCase):
 
             if expected_connected:
                 self.assertEqual(
-                    grove.mycelium_connections[second_tree.id], [(first_tree.id, 0.3)]
+                    grove.mycelium_connections[second_tree.id],
+                    [(first_tree.id, cross_specialization_strength)],
                 )
                 self.assertEqual(
-                    grove.mycelium_connections[first_tree.id], [(second_tree.id, 0.3)]
+                    grove.mycelium_connections[first_tree.id],
+                    [(second_tree.id, cross_specialization_strength)],
                 )
             else:
                 self.assertEqual(grove.mycelium_connections[second_tree.id], [])
