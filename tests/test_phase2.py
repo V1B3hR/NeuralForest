@@ -152,6 +152,76 @@ class TestGrove(unittest.TestCase):
         self.assertEqual(grove.mycelium_connections[first_tree.id], [])
         self.assertEqual(grove.mycelium_connections[clone_tree.id], [])
 
+    def test_mycelium_prefers_same_specialization_before_cross_specialization(self):
+        """Matching specializations should be prioritized before cross-links."""
+        grove = Grove(modality="image", input_dim=16, hidden_dim=8, max_trees=4)
+        grove.min_mycelium_distance = 0.0
+        grove.max_mycelium_neighbors = 1
+
+        same_id = grove.plant_specialist("classification")
+        self.assertIsNotNone(same_id)
+
+        with patch.object(grove, "_connect_to_similar_trees"):
+            cross_id = grove.plant_specialist("segmentation")
+            new_id = grove.plant_specialist("classification")
+        self.assertIsNotNone(cross_id)
+        self.assertIsNotNone(new_id)
+
+        same_tree = grove.trees[0]
+        cross_tree = grove.trees[1]
+        new_tree = grove.trees[2]
+
+        distances = {
+            same_tree.id: 0.2,
+            cross_tree.id: 0.1,
+        }
+        with patch.object(
+            grove,
+            "_tree_param_distance",
+            side_effect=lambda source, target: distances[target.id],
+        ), patch("groves.base_grove.random.random", return_value=0.0):
+            Grove._connect_to_similar_trees(grove, new_tree)
+
+        self.assertEqual(grove.mycelium_connections[new_tree.id], [(same_tree.id, 1.0)])
+        self.assertEqual(
+            grove.mycelium_connections[same_tree.id], [(new_tree.id, 1.0)]
+        )
+        self.assertEqual(grove.mycelium_connections[cross_tree.id], [])
+
+    def test_mycelium_cross_specialization_links_respect_probability(self):
+        """Cross-specialization links should follow the configured probability."""
+        for random_value, expected_connected in ((0.0, True), (0.9, False)):
+            grove = Grove(modality="image", input_dim=16, hidden_dim=8, max_trees=3)
+            grove.min_mycelium_distance = 0.0
+            grove.max_mycelium_neighbors = 1
+            grove.cross_specialization_link_probability = 0.25
+
+            first_id = grove.plant_specialist("classification")
+            self.assertIsNotNone(first_id)
+
+            with patch.object(grove, "_connect_to_similar_trees"):
+                second_id = grove.plant_specialist("segmentation")
+            self.assertIsNotNone(second_id)
+
+            first_tree = grove.trees[0]
+            second_tree = grove.trees[1]
+
+            with patch.object(grove, "_tree_param_distance", return_value=0.1), patch(
+                "groves.base_grove.random.random", return_value=random_value
+            ):
+                Grove._connect_to_similar_trees(grove, second_tree)
+
+            if expected_connected:
+                self.assertEqual(
+                    grove.mycelium_connections[second_tree.id], [(first_tree.id, 0.3)]
+                )
+                self.assertEqual(
+                    grove.mycelium_connections[first_tree.id], [(second_tree.id, 0.3)]
+                )
+            else:
+                self.assertEqual(grove.mycelium_connections[second_tree.id], [])
+                self.assertEqual(grove.mycelium_connections[first_tree.id], [])
+
 
 class TestLitterAbsorption(unittest.TestCase):
     """Test litter absorption via PrioritizedMulch."""

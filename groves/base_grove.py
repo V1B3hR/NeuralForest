@@ -5,6 +5,7 @@ Manages internal routing and knowledge sharing within the grove.
 
 import torch
 import torch.nn as nn
+import random
 from collections import deque, defaultdict
 from typing import Optional, Dict, Tuple
 
@@ -191,6 +192,7 @@ class Grove(nn.Module):
 
     MIN_MYCELIUM_DISTANCE: float = 0.02
     MAX_MYCELIUM_NEIGHBORS: int = 4
+    CROSS_SPECIALIZATION_LINK_PROBABILITY: float = 0.25
 
     def __init__(
         self,
@@ -213,6 +215,9 @@ class Grove(nn.Module):
         self.mycelium_connections = defaultdict(list)
         self.min_mycelium_distance = float(self.MIN_MYCELIUM_DISTANCE)
         self.max_mycelium_neighbors = int(self.MAX_MYCELIUM_NEIGHBORS)
+        self.cross_specialization_link_probability = float(
+            self.CROSS_SPECIALIZATION_LINK_PROBABILITY
+        )
 
         self.tree_counter = 0
 
@@ -251,8 +256,9 @@ class Grove(nn.Module):
     def _connect_to_similar_trees(self, new_tree: SpecialistTree):
         """
         Establish mycelium connections between the new tree and existing trees
-        while keeping spacing between neighbors. Matching specializations only
-        affect the connection strength.
+        while keeping spacing between neighbors. Matching specializations are
+        prioritized, while cross-specialization links remain possible with a
+        baseline probability and lower strength.
         """
         candidates = []
         for existing_tree in self.trees:
@@ -261,15 +267,23 @@ class Grove(nn.Module):
             distance = self._tree_param_distance(new_tree, existing_tree)
             if distance < self.min_mycelium_distance:
                 continue
-            candidates.append((distance, existing_tree))
+            same_specialization = (
+                existing_tree.specialization == new_tree.specialization
+            )
+            candidates.append((not same_specialization, distance, existing_tree))
 
-        candidates.sort(key=lambda item: item[0])
+        candidates.sort(key=lambda item: (item[0], item[1]))
         max_neighbors = max(0, min(self.max_mycelium_neighbors, self.max_trees - 1))
 
-        for _, existing_tree in candidates:
+        for cross_specialization, _, existing_tree in candidates:
             if len(self.mycelium_connections[new_tree.id]) >= max_neighbors:
                 break
             if len(self.mycelium_connections[existing_tree.id]) >= max_neighbors:
+                continue
+            if (
+                cross_specialization
+                and random.random() >= self.cross_specialization_link_probability
+            ):
                 continue
 
             if existing_tree.specialization == new_tree.specialization:
