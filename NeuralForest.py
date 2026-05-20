@@ -34,6 +34,7 @@ def set_seed(seed=42):
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Heuristic threshold for seed audits: large models can overconsume early resources.
 MAX_EFFICIENT_PARAMS = 1_000_000
 
 
@@ -410,7 +411,7 @@ class ForestEcosystem(nn.Module):
         if arch.num_layers > 4:
             notes.append("Deep architecture may slow early adaptation.")
         if arch.dropout >= 0.5:
-            notes.append("High dropout may suppress early growth.")
+            notes.append("High dropout might suppress early growth.")
         if arch.hidden_dim > self.hidden_dim * 2:
             notes.append("Wide hidden_dim may overconsume resources early.")
         if num_params > MAX_EFFICIENT_PARAMS:
@@ -419,7 +420,14 @@ class ForestEcosystem(nn.Module):
         return {
             "tree_id": tree.id,
             "timestamp": time.time(),
-            "architecture": arch.to_dict() if hasattr(arch, "to_dict") else arch,
+            "architecture": arch.to_dict() if hasattr(arch, "to_dict") else {
+                "num_layers": getattr(arch, "num_layers", 0),
+                "hidden_dim": getattr(arch, "hidden_dim", 0),
+                "activation": getattr(arch, "activation", "unknown"),
+                "dropout": getattr(arch, "dropout", 0.0),
+                "normalization": getattr(arch, "normalization", "none"),
+                "residual": getattr(arch, "residual", False),
+            },
             "num_parameters": num_params,
             "warnings": notes,
         }

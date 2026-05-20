@@ -23,13 +23,14 @@ from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import logging
+import statistics
 
 import torch
 
 logger = logging.getLogger(__name__)
 
-MIN_AVG_RESOURCE_ALLOCATION = 2
-ZERO_ALLOCATION_FRACTION = 0.5
+MIN_AVG_RESOURCE_ALLOCATION_THRESHOLD = 2
+ZERO_ALLOCATION_FRACTION_THRESHOLD = 0.5
 
 
 @dataclass
@@ -202,11 +203,11 @@ class HumusNursery:
             allocation_history = diagnostics.get("resource_allocations")
 
         if allocation_history:
-            avg_alloc = sum(allocation_history) / len(allocation_history)
+            avg_alloc = statistics.mean(allocation_history)
             zero_allocs = sum(1 for alloc in allocation_history if alloc <= 0)
-            if avg_alloc < MIN_AVG_RESOURCE_ALLOCATION:
+            if avg_alloc < MIN_AVG_RESOURCE_ALLOCATION_THRESHOLD:
                 notes.append("Received low average resource allocations.")
-            if zero_allocs >= len(allocation_history) * ZERO_ALLOCATION_FRACTION:
+            if zero_allocs >= len(allocation_history) * ZERO_ALLOCATION_FRACTION_THRESHOLD:
                 notes.append("Frequent zero-allocation cycles starved growth.")
 
         if planting_context and planting_context.get("warnings"):

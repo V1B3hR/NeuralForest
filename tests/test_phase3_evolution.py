@@ -104,14 +104,14 @@ class TestTreeGraveyard:
             generation=2,
             resource_history=[0, 1, 0],
             diagnostics=diagnostics,
-            planting_context={"warnings": ["High dropout may suppress early growth."]},
+            planting_context={"warnings": ["High dropout might suppress early growth."]},
         )
 
         assert record.inefficiency_notes
         assert any("declining" in note.lower() for note in record.inefficiency_notes)
         assert record.decomposition_progress
         assert record.decomposition_progress[0]["stage"] == "diagnosis"
-        assert record.planting_context["warnings"] == ["High dropout may suppress early growth."]
+        assert record.planting_context["warnings"] == ["High dropout might suppress early growth."]
     
     def test_query_by_reason(self):
         """Test querying records by elimination reason."""
