@@ -129,22 +129,18 @@ class TestGrove(unittest.TestCase):
     def test_mycelium_connections_skip_trees_below_min_distance(self):
         """Trees below the minimum parameter distance should not link."""
         grove = Grove(modality="image", input_dim=16, hidden_dim=8, max_trees=4)
-        grove.min_mycelium_distance = 1e-6
+        grove.min_mycelium_distance = float("inf")
 
         first_id = grove.plant_specialist("classification")
         self.assertIsNotNone(first_id)
         first_tree = grove.trees[0]
 
-        clone_tree = SpecialistTree(
-            input_dim=16,
-            hidden_dim=8,
-            tree_id=grove.tree_counter,
-            specialization="classification",
-            modality="image",
-        )
+        clone_id = grove.plant_specialist("classification")
+        self.assertIsNotNone(clone_id)
+        clone_tree = grove.trees[-1]
         clone_tree.load_state_dict(first_tree.state_dict())
-        grove.trees.append(clone_tree)
-        grove.tree_counter += 1
+
+        grove.min_mycelium_distance = 1e-6
 
         self.assertLess(
             grove._tree_param_distance(first_tree, clone_tree),
