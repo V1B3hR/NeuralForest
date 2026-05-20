@@ -28,6 +28,9 @@ import torch
 
 logger = logging.getLogger(__name__)
 
+MIN_AVG_RESOURCE_ALLOCATION = 2
+ZERO_ALLOCATION_FRACTION = 0.5
+
 
 @dataclass
 class TreeRecord:
@@ -201,9 +204,9 @@ class HumusNursery:
         if allocation_history:
             avg_alloc = sum(allocation_history) / len(allocation_history)
             zero_allocs = sum(1 for alloc in allocation_history if alloc <= 0)
-            if avg_alloc < 2:
+            if avg_alloc < MIN_AVG_RESOURCE_ALLOCATION:
                 notes.append("Received low average resource allocations.")
-            if zero_allocs >= len(allocation_history) / 2:
+            if zero_allocs >= len(allocation_history) * ZERO_ALLOCATION_FRACTION:
                 notes.append("Frequent zero-allocation cycles starved growth.")
 
         if planting_context and planting_context.get("warnings"):

@@ -34,6 +34,7 @@ def set_seed(seed=42):
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+MAX_EFFICIENT_PARAMS = 1_000_000
 
 
 def mse(y_pred, y_true):
@@ -412,7 +413,7 @@ class ForestEcosystem(nn.Module):
             notes.append("High dropout may suppress early growth.")
         if arch.hidden_dim > self.hidden_dim * 2:
             notes.append("Wide hidden_dim may overconsume resources early.")
-        if num_params > 1_000_000:
+        if num_params > MAX_EFFICIENT_PARAMS:
             notes.append("Large parameter count risks inefficient nutrient use.")
 
         return {
