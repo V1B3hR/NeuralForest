@@ -23,13 +23,12 @@ from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import logging
-import statistics
 
 import torch
 
 logger = logging.getLogger(__name__)
 
-# Heuristic thresholds for inefficiency signals.
+# Heuristic thresholds for inefficiency signals (resource units per allocation cycle).
 MIN_AVG_ALLOCATION = 2
 ZERO_ALLOCATION_FRACTION = 0.5
 
@@ -204,7 +203,7 @@ class HumusNursery:
             allocation_history = diagnostics.get("resource_allocations")
 
         if allocation_history:
-            avg_alloc = statistics.mean(allocation_history)
+            avg_alloc = sum(allocation_history) / len(allocation_history)
             zero_allocs = sum(1 for alloc in allocation_history if alloc <= 0)
             # Heuristic: average allocation below 2 units suggests starvation.
             if avg_alloc < MIN_AVG_ALLOCATION:
@@ -218,7 +217,7 @@ class HumusNursery:
                 notes.append(f"Seed warning: {warning}")
 
         if not notes:
-            notes.append("No dominant inefficiency signal; likely stochastic selection.")
+            notes.append("No inefficiency signals detected in available data.")
 
         return notes
 

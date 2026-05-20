@@ -419,7 +419,6 @@ class ForestEcosystem(nn.Module):
 
         return {
             "tree_id": tree.id,
-            "timestamp": time.time(),
             "architecture": arch.to_dict() if hasattr(arch, "to_dict") else {
                 "num_layers": getattr(arch, "num_layers", 0),
                 "hidden_dim": getattr(arch, "hidden_dim", 0),
@@ -434,6 +433,7 @@ class ForestEcosystem(nn.Module):
 
     def _register_tree_planting(self, tree: TreeExpert, **context):
         seed_report = self._assess_seed_health(tree)
+        seed_report["timestamp"] = time.time()
         seed_report.update(context)
         self.planting_log[tree.id] = seed_report
         return seed_report
@@ -538,6 +538,7 @@ class ForestEcosystem(nn.Module):
                     diagnostics=diagnostics,
                     planting_context=planting_context,
                 )
+                # Tree removals should flow through _prune_trees to keep planting_log tidy.
                 if record and tree.id in self.planting_log:
                     del self.planting_log[tree.id]
         
