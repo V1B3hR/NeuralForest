@@ -297,7 +297,7 @@ class Grove(nn.Module):
                 if src_param.shape != tgt_param.shape:
                     return float("inf")
                 mean_distance = (src_param - tgt_param).abs().mean()
-                total_distance = total_distance + mean_distance
+                total_distance += mean_distance
                 num_params += 1
 
         if num_params == 0:
