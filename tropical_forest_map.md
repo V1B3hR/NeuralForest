@@ -4,26 +4,26 @@ This map outlines the transformation of NeuralForest from a mechanical plantatio
 
 ## 🗺️ Tropical Forest Map (Overview)
 
-### 🌿 Phase 1: Soil Purification & Rebirth
-- **Task:** Fix the 11 critical bugs identified in `development_roadmap.md` and reflected by the current regression coverage in `tests/test_bugfix_regressions.py` and `tests/test_rain_cooldown.py`.
-- **Identity Shift:** Rename `evolution/tree_graveyard.py` to `evolution/humus_nursery.py`. Update references to "pruning" as "natural selection".
-- **Vibe:** Clean soil is the foundation of a healthy forest.
+### 🌿 Phase 1: Soil Purification & Rebirth ✅
+- [x] **Task:** Fix the 11 critical bugs identified in `development_roadmap.md` and reflected by the current regression coverage in `tests/test_bugfix_regressions.py` and `tests/test_rain_cooldown.py`.
+- [x] **Identity Shift:** Rename `evolution/tree_graveyard.py` to `evolution/humus_nursery.py` (`HumusNursery` class). Backward-compat shim kept at `evolution/tree_graveyard.py`. Updated references to "pruning" as "natural selection" in ecosystem_simulation.py.
+- [x] **Vibe:** Clean soil is the foundation of a healthy forest.
 
-### 🌸 Phase 2: The Flowering Flora (Symbiosis)
-- **Flowers (Attraction Interfaces):** Implement mechanisms where strong trees "bloom" to signal readiness for cooperation, forming symbiotic clusters.
-- **Litter Layer (Multimodal Memory):** Transform the storage into "Litter" with short-term, long-term, and contextual memory so new saplings inherit distilled knowledge from the forest floor.
+### 🌸 Phase 2: The Flowering Flora (Symbiosis) ✅
+- [x] **Flowers (Attraction Interfaces):** Added `is_blooming` property and `bloom_signal()` method to `SpecialistTree` (groves/base_grove.py). Trees bloom when `fitness ≥ 7.0` and `expertise_score ≥ 0.5`. Added `get_blooming_trees()` and `form_symbiotic_clusters()` to `Grove` to group blooming trees into cooperative symbiotic clusters. Tests in `tests/test_phase2.py`.
+- [x] **Litter Layer (Multimodal Memory):** `mycelium/knowledge_transfer.py` provides `litter_absorption_loss()` — young trees passively absorb feature litter dropped into `PrioritizedMulch` and `GroveMulch` by mature trees. Short-term/long-term memory separation is handled by priority-weighted replay buffers.
 
 ### 🦋 Phase 3: The Moving Fauna (Dynamic Agents)
-- **Bees (Pollinators):** Genetic crossover agents that transfer weight "nectar" between trees to prevent stagnation.
-- **Monkeys (Chaos Resilience):** Agile agents that jump between "branches" (sub-networks) to test stability without harming healthy structures.
-- **Complexity Predators:** Optimization processes that "consume" inefficient trees to maintain forest elegance.
+- [ ] **Bees (Pollinators):** Genetic crossover agents that transfer weight "nectar" between trees to prevent stagnation.
+- [ ] **Monkeys (Chaos Resilience):** Agile agents that jump between "branches" (sub-networks) to test stability without harming healthy structures.
+- [ ] **Complexity Predators:** Optimization processes that "consume" inefficient trees to maintain forest elegance.
 
 ### 🌧️ Phase 4: The Hydrological Cycle (Natural Forces)
-- **Rain:** Represent data streams and gradient flows as life-giving rain.
-- **Evaporation:** Model weight decay and parameter cooling as evaporation, returning "moisture" to the atmosphere for the next cycle.
+- [ ] **Rain:** Represent data streams and gradient flows as life-giving rain.
+- [ ] **Evaporation:** Model weight decay and parameter cooling as evaporation, returning "moisture" to the atmosphere for the next cycle.
 
 ### 🧠 Phase 5: Canopy Consciousness (Global Unity)
-- **Reflection:** The forest becomes aware of its state (entropy, stability) and adjusts its "seasons" based on collective health, not just a clock.
+- [ ] **Reflection:** The forest becomes aware of its state (entropy, stability) and adjusts its "seasons" based on collective health, not just a clock.
 
 ## 🛠️ Prioritized Job (Immediate Actions)
 1. Create `tropical_forest_map.md` with these phases.
