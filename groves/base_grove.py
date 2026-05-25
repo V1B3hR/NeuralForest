@@ -5,6 +5,7 @@ Manages internal routing and knowledge sharing within the grove.
 
 import torch
 import torch.nn as nn
+import random
 from collections import deque, defaultdict
 from typing import Optional, Dict, Tuple
 
@@ -191,6 +192,7 @@ class Grove(nn.Module):
 
     MIN_MYCELIUM_DISTANCE: float = 0.02
     MAX_MYCELIUM_NEIGHBORS: int = 4
+    CROSS_SPECIALIZATION_LINK_PROBABILITY: float = 0.25
 
     def __init__(
         self,
@@ -213,6 +215,9 @@ class Grove(nn.Module):
         self.mycelium_connections = defaultdict(list)
         self.min_mycelium_distance = float(self.MIN_MYCELIUM_DISTANCE)
         self.max_mycelium_neighbors = int(self.MAX_MYCELIUM_NEIGHBORS)
+        self.cross_specialization_link_probability = float(
+            self.CROSS_SPECIALIZATION_LINK_PROBABILITY
+        )
 
         self.tree_counter = 0
 
@@ -251,7 +256,9 @@ class Grove(nn.Module):
     def _connect_to_similar_trees(self, new_tree: SpecialistTree):
         """
         Establish mycelium connections between the new tree and existing trees
-        with similar specializations while keeping spacing between neighbors.
+        while keeping spacing between neighbors. Matching specializations are
+        prioritized, while cross-specialization links remain possible with a
+        baseline probability and lower strength.
         """
         candidates = []
         for existing_tree in self.trees:
@@ -260,15 +267,24 @@ class Grove(nn.Module):
             distance = self._tree_param_distance(new_tree, existing_tree)
             if distance < self.min_mycelium_distance:
                 continue
-            candidates.append((distance, existing_tree))
+            same_specialization = (
+                existing_tree.specialization == new_tree.specialization
+            )
+            specialization_priority = 0 if same_specialization else 1
+            candidates.append((specialization_priority, distance, existing_tree))
 
-        candidates.sort(key=lambda item: item[0])
+        candidates.sort(key=lambda item: (item[0], item[1]))
         max_neighbors = max(0, min(self.max_mycelium_neighbors, self.max_trees - 1))
 
-        for _, existing_tree in candidates:
+        for specialization_priority, _, existing_tree in candidates:
             if len(self.mycelium_connections[new_tree.id]) >= max_neighbors:
                 break
             if len(self.mycelium_connections[existing_tree.id]) >= max_neighbors:
+                continue
+            if (
+                specialization_priority == 1
+                and random.random() >= self.cross_specialization_link_probability
+            ):
                 continue
 
             if existing_tree.specialization == new_tree.specialization:
@@ -287,18 +303,25 @@ class Grove(nn.Module):
         self, source_tree: SpecialistTree, target_tree: SpecialistTree
     ) -> float:
         """Return mean absolute parameter distance between two trees."""
-        distances = []
+        num_params = 0
         with torch.no_grad():
+            total_distance = None
             for src_param, tgt_param in zip(
                 source_tree.parameters(), target_tree.parameters()
             ):
                 if src_param.shape != tgt_param.shape:
                     return float("inf")
-                distances.append((src_param - tgt_param).abs().mean().item())
+                mean_distance = (src_param - tgt_param).abs().mean()
+                total_distance = (
+                    mean_distance
+                    if total_distance is None
+                    else total_distance + mean_distance
+                )
+                num_params += 1
 
-        if not distances:
+        if total_distance is None or num_params == 0:
             return float("inf")
-        return sum(distances) / len(distances)
+        return (total_distance / num_params).item()
 
     def forward(
         self, x: torch.Tensor, top_k: int = 3
