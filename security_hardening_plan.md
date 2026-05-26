@@ -1,3 +1,12 @@
+## ✅ Completion Status
+
+This hardening plan has been implemented and the planned follow-up items are now tracked as complete where applicable.
+
+- [x] Phase A — Core security and correctness hardening
+- [x] Phase B — Documentation alignment
+- [x] Phase C — Regression coverage
+- [x] Plan tracking updated to reflect completion
+
 Phase 1 — Critical security and correctness
 1. api/forest_api.py
 Risk level: Critical
