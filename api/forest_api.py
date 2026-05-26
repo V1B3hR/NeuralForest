@@ -7,10 +7,13 @@ and checkpoint management.
 """
 
 import time
+import logging
 from collections import deque
 from typing import Dict, List, Any, Optional, Union
 import numpy as np
 import torch
+
+logger = logging.getLogger(__name__)
 
 
 class ForestCheckpoint:
@@ -31,18 +34,20 @@ class ForestCheckpoint:
             path: Path to save checkpoint
             metadata: Optional metadata dictionary to include
         """
-        forest.save_checkpoint(path)
+        forest.save_checkpoint(path, metadata=metadata)
 
-        # Add metadata if provided
-        if metadata:
-            checkpoint = torch.load(path)
-            checkpoint["metadata"] = metadata
-            torch.save(checkpoint, path)
+    @staticmethod
+    def _load_checkpoint_dict(path: str) -> Dict[str, Any]:
+        """Load a checkpoint dictionary from a trusted artifact only."""
+        return torch.load(path, map_location="cpu", weights_only=True)
 
     @staticmethod
     def load(path: str, device=None):
         """
         Load forest from checkpoint file.
+
+        Trusted artifacts only: this loader is intended for checkpoints produced
+        by NeuralForest itself and should not be used on untrusted files.
 
         Args:
             path: Path to checkpoint file
@@ -72,7 +77,7 @@ class ForestCheckpoint:
             True if checkpoint is valid
         """
         try:
-            checkpoint = torch.load(path, map_location="cpu")
+            checkpoint = ForestCheckpoint._load_checkpoint_dict(path)
             required_keys = [
                 "input_dim",
                 "hidden_dim",
@@ -94,10 +99,21 @@ class ForestCheckpoint:
         Returns:
             Dictionary with checkpoint information
         """
-        checkpoint = torch.load(path, map_location="cpu")
+        try:
+            checkpoint = ForestCheckpoint._load_checkpoint_dict(path)
+        except Exception as exc:
+            return {"valid": False, "error": str(exc)}
+
+        required_keys = {
+            "input_dim",
+            "hidden_dim",
+            "tree_states",
+            "router_state_dict",
+        }
+        valid = required_keys.issubset(checkpoint)
 
         return {
-            "valid": True,
+            "valid": valid,
             "num_trees": len(checkpoint.get("tree_states", [])),
             "input_dim": checkpoint.get("input_dim"),
             "hidden_dim": checkpoint.get("hidden_dim"),
@@ -202,6 +218,12 @@ class NeuralForestAPI:
         try:
             x = self._extract_input_tensor(inputs)
 
+            num_trees = self.forest.num_trees()
+            if num_trees < 1:
+                raise ValueError("Forest contains no trees")
+
+            top_k = min(top_k, num_trees)
+
             # Validate shape matches forest input dimension
             if x.shape[-1] != self.forest.input_dim:
                 raise ValueError(
@@ -299,6 +321,27 @@ class NeuralForestAPI:
             return {
                 "status": "empty",
                 "num_trees": 0,
+                "num_groves": 0,
+                "memory_usage": {
+                    "mulch_size": len(self.forest.mulch),
+                    "mulch_capacity": self.forest.mulch.capacity,
+                    "utilization": len(self.forest.mulch) / self.forest.mulch.capacity,
+                    "anchor_size": len(self.forest.anchors),
+                    "anchor_capacity": self.forest.anchors.capacity,
+                },
+                "performance": {
+                    "total_predictions": self.prediction_count,
+                    "total_training": self.training_count,
+                    "avg_prediction_time_ms": 0,
+                },
+                "tree_health": {
+                    "average_fitness": 0.0,
+                    "min_fitness": 0.0,
+                    "max_fitness": 0.0,
+                    "average_age": 0.0,
+                    "average_bark": 0.0,
+                },
+                "tree_details": [],
             }
 
         fitnesses = [t.fitness for t in trees]
@@ -371,9 +414,10 @@ class NeuralForestAPI:
         elif mem_util > 0.85:
             issues.append("memory_high")
 
-        avg_fitness = status["tree_health"]["average_fitness"]
-        if avg_fitness < 2.0:
-            issues.append("low_fitness")
+        if status["num_trees"] > 0:
+            avg_fitness = status["tree_health"]["average_fitness"]
+            if avg_fitness < 2.0:
+                issues.append("low_fitness")
 
         health = (
             "healthy"
@@ -398,6 +442,8 @@ class NeuralForestAPI:
         """
         if metadata is None:
             metadata = {}
+        else:
+            metadata = dict(metadata)
 
         metadata.update(
             {
@@ -425,17 +471,24 @@ class NeuralForestAPI:
         Returns:
             Prepared tensor on correct device with batch dimension
         """
-        if "input" in inputs:
-            x = inputs["input"]
-        elif "x" in inputs:
-            x = inputs["x"]
-        else:
-            # Fall back to first value; keys "input" or "x" are preferred
-            x = next(iter(inputs.values()))
+        try:
+            if "input" in inputs:
+                x = inputs["input"]
+            elif "x" in inputs:
+                x = inputs["x"]
+            else:
+                # Fall back to first value; keys "input" or "x" are preferred
+                x = next(iter(inputs.values()))
 
-        if not isinstance(x, torch.Tensor):
-            x = torch.as_tensor(x, dtype=torch.float32)
+            if not isinstance(x, torch.Tensor):
+                x = torch.as_tensor(x, dtype=torch.float32)
+        except Exception as exc:
+            raise ValueError(f"Unable to parse input tensor: {exc}") from exc
+
         x = x.to(self.device)
+
+        if x.dim() == 0:
+            raise ValueError("Input tensor must have at least one dimension")
 
         if x.dim() == 1:
             x = x.unsqueeze(0)

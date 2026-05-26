@@ -81,7 +81,7 @@ class TestBugfixRegressions(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 ForestEcosystem.load_checkpoint("dummy.pt", device=torch.device("cpu"))
         self.assertIn("weights_only", mocked.call_args.kwargs)
-        self.assertFalse(mocked.call_args.kwargs["weights_only"])
+        self.assertTrue(mocked.call_args.kwargs["weights_only"])
 
     def test_forest_teacher_uses_forest_device(self):
         forest = ForestEcosystem(input_dim=4, max_trees=4).to(torch.device("cpu"))
