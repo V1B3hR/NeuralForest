@@ -8,6 +8,7 @@
 
 import math
 import random
+import logging
 from collections import deque
 from dataclasses import dataclass, asdict
 from typing import Optional
@@ -20,6 +21,8 @@ import torch.optim as optim
 
 import networkx as nx
 import matplotlib.pyplot as plt
+
+logger = logging.getLogger(__name__)
 
 
 # ----------------------------
@@ -586,7 +589,7 @@ class ForestEcosystem(nn.Module):
             t.step_age()
 
     # --------- checkpoints (now store per-tree arch) ---------
-    def save_checkpoint(self, path):
+    def save_checkpoint(self, path, metadata: Optional[dict] = None):
         import os
 
         dir_name = os.path.dirname(path)
@@ -626,15 +629,48 @@ class ForestEcosystem(nn.Module):
             "graph_edges": graph_edges,
         }
 
+        if metadata:
+            checkpoint["metadata"] = dict(metadata)
+
         torch.save(checkpoint, path)
-        print(f"✅ Checkpoint saved to {path}")
+        logger.info("Checkpoint saved to %s", path)
+
+    @staticmethod
+    def _load_checkpoint_dict(path, device):
+        """Load a trusted NeuralForest checkpoint artifact."""
+        return torch.load(path, map_location=device, weights_only=True)
 
     @classmethod
     def load_checkpoint(cls, path, device=None):
+        """Load a checkpoint produced by this project.
+
+        Trusted artifacts only: this loader is intended for checkpoints saved by
+        NeuralForest itself and should not be used on untrusted files.
+        """
         if device is None:
             device = DEVICE
 
-        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        checkpoint = cls._load_checkpoint_dict(path, device)
+
+        required_keys = {
+            "input_dim",
+            "hidden_dim",
+            "max_trees",
+            "tree_counter",
+            "tree_states",
+            "router_state_dict",
+            "mulch_data",
+            "mulch_capacity",
+            "mulch_alpha",
+            "anchor_data",
+            "anchor_capacity",
+            "graph_edges",
+        }
+        missing_keys = sorted(required_keys - set(checkpoint))
+        if missing_keys:
+            raise ValueError(
+                f"Checkpoint missing required keys: {', '.join(missing_keys)}"
+            )
 
         forest = cls(
             input_dim=checkpoint["input_dim"],
@@ -693,9 +729,12 @@ class ForestEcosystem(nn.Module):
         for u, v, data in checkpoint["graph_edges"]:
             forest.graph.add_edge(u, v, **data)
 
-        print(f"✅ Checkpoint loaded from {path}")
-        print(
-            f"   Trees: {forest.num_trees()}, Memory: {len(forest.mulch)}, Anchors: {len(forest.anchors)}"
+        logger.info("Checkpoint loaded from %s", path)
+        logger.info(
+            "Trees: %s, Memory: %s, Anchors: %s",
+            forest.num_trees(),
+            len(forest.mulch),
+            len(forest.anchors),
         )
         return forest
 

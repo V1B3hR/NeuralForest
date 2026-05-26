@@ -30,8 +30,9 @@ This map outlines the transformation of NeuralForest from a mechanical plantatio
 - [x] **Environmental Adaptation:** Climate/stressor simulation and data shift modeling in `evolution/environmental_sim.py`.
 
 ### 🏗️ Phase 7: Production & Scaling (Evergreen Deployment) ✅
-- [x] **Production API:** Deployment-ready interface in `api/` with checkpoints and health checks.
+- [x] **Production API:** Deployment-oriented interface in `api/` with checkpoints and health checks.
 - [x] **Scaling & Benchmarks:** Benchmarking + deployment assets in `benchmarks/` and `deployment/`.
+- [x] **Hardening Follow-up:** Safe checkpoint handling, observability, production validation, and security review remain active follow-up work.
 
 ## 🛠️ Prioritized Job (Immediate Actions)
 1. [x] Create `tropical_forest_map.md` with these phases.

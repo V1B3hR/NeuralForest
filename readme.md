@@ -36,7 +36,7 @@ It is designed for continual learning, with robustness against data drift and dy
 - **Self-Improvement Loop** - Continuous autonomous enhancement
 
 ### Phase 7: Production & Scaling ✅
-- **Production API** - Clean interface for deployment (`NeuralForestAPI`)
+- **Production API** - Production-oriented interface for deployment (`NeuralForestAPI`)
 - **Checkpoint Management** - Robust save/load with validation
 - **Performance Benchmarks** - Comprehensive latency, throughput, memory, and accuracy testing
 - **Docker & Kubernetes** - Production-ready deployment configurations
@@ -90,7 +90,7 @@ python phase5_demo.py  # Multi-modal tasks, evolution visualization
 python phase6_demo.py  # Tree cooperation, environmental simulation, consciousness
 
 # Phase 7: Production & Scaling  
-python phase7_demo.py  # API, checkpoints, benchmarks, deployment readiness
+python phase7_demo.py  # API, checkpoints, benchmarks, production-oriented deployment
 ```
 
 ## 💻 CPU Training
@@ -134,6 +134,11 @@ api.train_online({'input': new_data}, targets)
 status = api.get_forest_status()
 health = api.health_check()
 ```
+
+### Security Notes
+- Checkpoints are trusted-only artifacts and should only be loaded from known-good sources.
+- The production API should still undergo security audits, load testing, and input-sanitization review before production use.
+- Validate checkpoints before deployment and keep checkpoint handling in the trusted artifact boundary.
 
 ### Self-Evolution
 ```python
@@ -301,7 +306,8 @@ NeuralForest/
 │   ├── environmental_sim.py    # Environmental simulation (Phase 6)
 │   ├── genealogy.py            # Genealogy tracking
 │   ├── monitoring.py           # Real-time monitoring
-│   ├── tree_graveyard.py       # Eliminated tree archive
+│   ├── humus_nursery.py        # Eliminated tree archive (primary; tree_graveyard shim retained)
+│   ├── tree_graveyard.py       # Backward-compatibility shim
 │   └── ...                     # Other evolution modules
 │
 ├── api/                     # Production API (Phase 7)

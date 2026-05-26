@@ -6,6 +6,7 @@ Hierarchical Router: Multi-level routing system for the forest canopy.
 4. Aggregate outputs with learned weights
 """
 
+import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,6 +14,8 @@ from typing import Dict, List, Optional, Tuple
 
 from .modality_detector import ModalityDetector
 from .attention_aggregator import CrossGroveAttention, AdaptiveAggregator
+
+logger = logging.getLogger(__name__)
 
 
 class GroveRouter(nn.Module):
@@ -81,6 +84,8 @@ class ForestCanopy(nn.Module):
     Multi-level routing system for the forest.
     Handles modality detection, grove selection, and output aggregation.
     """
+
+    ROUTING_EPSILON = 1e-8
 
     def __init__(
         self,
@@ -157,6 +162,10 @@ class ForestCanopy(nn.Module):
             routing_info: Dictionary with routing information
         """
         batch_size = x.shape[0]
+        routing_info = {
+            "failed_groves": [],
+            "failure_count": 0,
+        }
 
         # Level 1: Detect modality if not provided
         if modality_hint is None:
@@ -169,74 +178,104 @@ class ForestCanopy(nn.Module):
         # Level 2: Route to selected groves
         if not self.groves:
             # No groves available, return zeros
-            return torch.zeros(batch_size, 1, device=x.device), {
-                "modalities": detected_modalities,
-                "groves_used": [],
-                "error": "No groves available",
-            }
+            routing_info.update(
+                {
+                    "modalities": detected_modalities,
+                    "groves_used": [],
+                    "grove_weights": [],
+                    "error": "No groves available",
+                }
+            )
+            return torch.zeros(batch_size, 1, device=x.device), routing_info
 
-        grove_outputs = []
-        grove_weights_list = []
         groves_used = []
 
         # Get grove routing scores
         grove_scores = self.grove_router(x)
 
         # Activate top-k groves
-        top_k = min(top_k_groves, len(self.groves))
+        grove_names = list(self.groves.keys())
+        top_k = min(top_k_groves, len(grove_names))
+        if top_k < 1:
+            routing_info.update(
+                {
+                    "modalities": detected_modalities,
+                    "groves_used": [],
+                    "grove_weights": [],
+                    "error": "No valid grove outputs",
+                }
+            )
+            return torch.zeros(batch_size, 1, device=x.device), routing_info
+
         topk_values, topk_indices = torch.topk(grove_scores, k=top_k, dim=1)
         grove_routing_weights = F.softmax(topk_values, dim=1)
 
-        # Route to selected groves
-        grove_names = list(self.groves.keys())
-        for i in range(top_k):
-            grove_idx = topk_indices[0, i].item()  # Use first sample's routing
-            if grove_idx < len(grove_names):
+        batch_outputs = []
+
+        # Route to selected groves per sample so each sample can choose differently.
+        for sample_idx in range(batch_size):
+            sample = x[sample_idx : sample_idx + 1]
+            sample_outputs = []
+            sample_weights = []
+
+            for rank in range(top_k):
+                grove_idx = topk_indices[sample_idx, rank].item()
+                if grove_idx >= len(grove_names):
+                    continue
+
                 grove_name = grove_names[grove_idx]
                 grove = self.groves[grove_name]
 
                 try:
-                    # Forward through grove
-                    grove_output, tree_weights = grove(x, top_k=3)
-                    grove_outputs.append(grove_output)
-                    grove_weights_list.append(grove_routing_weights[:, i : i + 1])
-                    groves_used.append(grove_name)
-                except Exception as e:
-                    # Skip this grove if error occurs
-                    print(f"Warning: Grove {grove_name} failed: {e}")
-                    continue
+                    grove_output, _tree_weights = grove(sample, top_k=3)
+                    sample_outputs.append(grove_output)
+                    sample_weights.append(
+                        grove_routing_weights[sample_idx, rank : rank + 1].unsqueeze(-1)
+                    )
+                    if grove_name not in groves_used:
+                        groves_used.append(grove_name)
+                except Exception as exc:
+                    logger.warning(
+                        "Grove %s failed for sample %s: %s", grove_name, sample_idx, exc
+                    )
+                    routing_info["failed_groves"].append(
+                        {
+                            "sample_index": sample_idx,
+                            "grove": grove_name,
+                            "error": str(exc),
+                        }
+                    )
 
-        # Level 3: Aggregate outputs across groves
-        if not grove_outputs:
-            return torch.zeros(batch_size, 1, device=x.device), {
-                "modalities": detected_modalities,
-                "groves_used": [],
-                "error": "No valid grove outputs",
-            }
+            if not sample_outputs:
+                batch_outputs.append(torch.zeros(1, 1, device=x.device))
+                continue
 
-        if len(grove_outputs) == 1:
-            # Single grove, no aggregation needed
-            final_output = grove_outputs[0]
-        else:
-            # Multiple groves, use weighted aggregation
-            stacked_outputs = torch.stack(grove_outputs, dim=1)  # [B, num_groves, 1]
-            stacked_weights = torch.stack(
-                grove_weights_list, dim=1
-            )  # [B, num_groves, 1]
+            if len(sample_outputs) == 1:
+                batch_outputs.append(sample_outputs[0])
+            else:
+                stacked_outputs = torch.stack(sample_outputs, dim=1)  # [1, num_groves, 1]
+                stacked_weights = torch.stack(sample_weights, dim=1)  # [1, num_groves, 1]
+                weight_sums = stacked_weights.sum(dim=1, keepdim=True)
+                if torch.any(weight_sums <= self.ROUTING_EPSILON).item():
+                    logger.warning(
+                        "Routing weights collapsed for sample %s; normalizing with epsilon",
+                        sample_idx,
+                    )
+                stacked_weights = stacked_weights / weight_sums.clamp_min(self.ROUTING_EPSILON)
+                batch_outputs.append((stacked_outputs * stacked_weights).sum(dim=1))
 
-            # Normalize weights
-            stacked_weights = stacked_weights / stacked_weights.sum(dim=1, keepdim=True)
-
-            # Weighted sum
-            final_output = (stacked_outputs * stacked_weights).sum(dim=1)
+        final_output = torch.cat(batch_outputs, dim=0)
 
         # Routing information
-        routing_info = {
-            "modalities": detected_modalities,
-            "modality_probs": {k: v[0].item() for k, v in modality_probs.items()},
-            "groves_used": groves_used,
-            "grove_weights": grove_routing_weights[0].tolist()[:top_k],
-        }
+        routing_info.update(
+            {
+                "modalities": detected_modalities,
+                "modality_probs": {k: v[0].item() for k, v in modality_probs.items()},
+                "groves_used": groves_used,
+                "grove_weights": grove_routing_weights.tolist(),
+                "failure_count": len(routing_info["failed_groves"]),
+            }
+        )
 
         return final_output, routing_info
 
