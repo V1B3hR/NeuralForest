@@ -306,7 +306,7 @@ NeuralForest/
 │   ├── environmental_sim.py    # Environmental simulation (Phase 6)
 │   ├── genealogy.py            # Genealogy tracking
 │   ├── monitoring.py           # Real-time monitoring
-│   ├── humus_nursery.py        # Eliminated tree archive
+│   ├── humus_nursery.py        # Eliminated tree archive (primary; tree_graveyard shim retained)
 │   ├── tree_graveyard.py       # Backward-compatibility shim
 │   └── ...                     # Other evolution modules
 │

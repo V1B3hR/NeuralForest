@@ -253,9 +253,13 @@ class ForestCanopy(nn.Module):
             else:
                 stacked_outputs = torch.stack(sample_outputs, dim=1)  # [1, num_groves, 1]
                 stacked_weights = torch.stack(sample_weights, dim=1)  # [1, num_groves, 1]
-                stacked_weights = stacked_weights / stacked_weights.sum(
-                    dim=1, keepdim=True
-                ).clamp_min(1e-8)
+                weight_sums = stacked_weights.sum(dim=1, keepdim=True)
+                if torch.any(weight_sums <= 1e-8):
+                    logger.warning(
+                        "Routing weights collapsed for sample %s; normalizing with epsilon",
+                        sample_idx,
+                    )
+                stacked_weights = stacked_weights / weight_sums.clamp_min(1e-8)
                 batch_outputs.append((stacked_outputs * stacked_weights).sum(dim=1))
 
         final_output = torch.cat(batch_outputs, dim=0)
