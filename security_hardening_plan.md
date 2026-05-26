@@ -207,7 +207,7 @@ Required fixes
  Apply same trusted-artifact rule here.
 Recommended implementation phases (A-C completed)
 Phase A — Completed first-pass security and correctness
-Goal: removed biggest risk and biggest correctness issue.
+Goal: Removed the biggest risk and biggest correctness issue.
 
 Files
 
