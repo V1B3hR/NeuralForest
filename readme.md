@@ -137,7 +137,7 @@ health = api.health_check()
 
 ### Security Notes
 - Checkpoints are trusted-only artifacts and should only be loaded from known-good sources.
-- The production API is production-oriented, but not a substitute for external validation and review.
+- The production API should still undergo security audits, load testing, and input-sanitization review before production use.
 - Validate checkpoints before deployment and keep checkpoint handling in the trusted artifact boundary.
 
 ### Self-Evolution

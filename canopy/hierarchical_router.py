@@ -85,6 +85,8 @@ class ForestCanopy(nn.Module):
     Handles modality detection, grove selection, and output aggregation.
     """
 
+    ROUTING_EPSILON = 1e-8
+
     def __init__(
         self,
         grove_dict: Optional[Dict[str, nn.Module]] = None,
@@ -254,12 +256,12 @@ class ForestCanopy(nn.Module):
                 stacked_outputs = torch.stack(sample_outputs, dim=1)  # [1, num_groves, 1]
                 stacked_weights = torch.stack(sample_weights, dim=1)  # [1, num_groves, 1]
                 weight_sums = stacked_weights.sum(dim=1, keepdim=True)
-                if torch.any(weight_sums <= 1e-8):
+                if torch.any(weight_sums <= self.ROUTING_EPSILON).item():
                     logger.warning(
                         "Routing weights collapsed for sample %s; normalizing with epsilon",
                         sample_idx,
                     )
-                stacked_weights = stacked_weights / weight_sums.clamp_min(1e-8)
+                stacked_weights = stacked_weights / weight_sums.clamp_min(self.ROUTING_EPSILON)
                 batch_outputs.append((stacked_outputs * stacked_weights).sum(dim=1))
 
         final_output = torch.cat(batch_outputs, dim=0)

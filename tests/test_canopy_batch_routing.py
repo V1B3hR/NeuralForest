@@ -42,7 +42,12 @@ class TestCanopyBatchRouting(unittest.TestCase):
         x = torch.randn(2, 4)
         output, routing_info = canopy(x, modality_hint="image", top_k_groves=1)
 
-        self.assertTrue(torch.allclose(output.squeeze(-1), torch.tensor([2.0, 1.0])))
+        self.assertTrue(
+            torch.allclose(
+                output.squeeze(-1),
+                torch.tensor([2.0, 1.0], device=output.device),
+            )
+        )
         self.assertEqual(routing_info["failure_count"], 0)
         self.assertEqual(routing_info["groves_used"], ["audio", "image"])
 

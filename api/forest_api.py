@@ -443,6 +443,7 @@ class NeuralForestAPI:
         if metadata is None:
             metadata = {}
         else:
+            # Copy caller metadata so save() can safely add API-generated fields.
             metadata = dict(metadata)
 
         metadata.update(
@@ -488,7 +489,9 @@ class NeuralForestAPI:
         x = x.to(self.device)
 
         if x.dim() == 0:
-            raise ValueError("Input tensor must have at least one dimension")
+            raise ValueError(
+                "Input tensor must have at least 1 dimension (received 0-dimensional scalar)"
+            )
 
         if x.dim() == 1:
             x = x.unsqueeze(0)
