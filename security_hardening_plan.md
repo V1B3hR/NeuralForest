@@ -205,9 +205,9 @@ Required fixes
  Include in deserialization audit if feasible in same PR.
  If not, add explicit follow-up issue.
  Apply same trusted-artifact rule here.
-Recommended implementation phases
-Phase A — Must do first
-Goal: remove biggest risk and biggest correctness issue.
+Recommended implementation phases (A-C completed)
+Phase A — Completed first-pass security and correctness
+Goal: removed biggest risk and biggest correctness issue.
 
 Files
 
@@ -220,7 +220,7 @@ checkpoint handling hardening path
 per-sample canopy routing
 stable empty-forest health/status
 logging instead of print in canopy
-Phase B — Align documentation with reality
+Phase B — Completed documentation alignment
 Files
 
 tropical_forest_map.md
@@ -229,8 +229,8 @@ Deliverables
 
 trusted-only checkpoint guidance
 moderated Phase 7 claims
-mention hardening still pending
-Phase C — Regression coverage
+document hardening follow-up backlog items
+Phase C — Completed regression coverage
 Files
 
 new tests under tests/
