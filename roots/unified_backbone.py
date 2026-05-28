@@ -6,6 +6,7 @@ Enables cross-modal understanding and knowledge transfer.
 
 import torch
 import torch.nn as nn
+import warnings
 from typing import Dict, Optional
 
 
@@ -142,7 +143,7 @@ class RootNetwork(nn.Module):
 class SimpleRootNetwork(nn.Module):
     """
     Simplified root network without cross-attention.
-    Uses concatenation and MLP for multi-modal fusion.
+    Uses mean-pooling and MLP for multi-modal fusion.
     """
 
     def __init__(
@@ -169,12 +170,8 @@ class SimpleRootNetwork(nn.Module):
             }
         )
 
-        # Fusion MLP (handles variable number of modalities)
-        # Max concat size: sum of all modality dimensions
-        max_concat_dim = len(modality_dims) * embedding_dim
-
         self.fusion_mlp = nn.Sequential(
-            nn.Linear(max_concat_dim, embedding_dim * 2),
+            nn.Linear(embedding_dim, embedding_dim * 2),
             nn.ReLU(),
             nn.Dropout(0.1),
             nn.Linear(embedding_dim * 2, embedding_dim),
@@ -183,7 +180,7 @@ class SimpleRootNetwork(nn.Module):
 
     def forward(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
-        Combine multiple modality inputs via concatenation + MLP.
+        Combine multiple modality inputs via mean-pooling + MLP.
 
         Args:
             inputs: Dictionary mapping modality names to tensors
@@ -198,7 +195,7 @@ class SimpleRootNetwork(nn.Module):
         embeddings = []
         for modality, tensor in inputs.items():
             if modality not in self.projectors:
-                # Skip unknown modalities
+                warnings.warn(f"Unknown modality '{modality}' will be ignored.")
                 continue
             proj = self.projectors[modality](tensor)
             embeddings.append(proj)
@@ -206,26 +203,8 @@ class SimpleRootNetwork(nn.Module):
         if not embeddings:
             raise ValueError("No valid modality inputs found")
 
-        # Single modality: return as-is
-        if len(embeddings) == 1:
-            return embeddings[0]
+        # Stack and mean-pool modality embeddings
+        stacked = torch.stack(embeddings, dim=1)  # [B, N, embedding_dim]
+        pooled = stacked.mean(dim=1)  # [B, embedding_dim]
 
-        # Multiple modalities: concatenate and fuse
-        # Pad to maximum size
-        B = embeddings[0].shape[0]
-        max_modalities = len(self.projectors)
-
-        # Create padded concatenation
-        concat_embeds = torch.zeros(
-            B, max_modalities * self.embedding_dim, device=embeddings[0].device
-        )
-
-        for i, emb in enumerate(embeddings):
-            start_idx = i * self.embedding_dim
-            end_idx = start_idx + self.embedding_dim
-            concat_embeds[:, start_idx:end_idx] = emb
-
-        # Fuse with MLP
-        unified = self.fusion_mlp(concat_embeds)
-
-        return unified
+        return self.fusion_mlp(pooled)
